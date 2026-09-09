@@ -40,32 +40,68 @@ class SidebarNav(tk.Frame):
         self.current_view = "all"
 
         self._nav_buttons: dict[str, tuple[tk.Button, tk.Label]] = {}
+        self._logo_image = self._load_logo_image()
 
         self._build_ui()
 
+    def _load_logo_image(self) -> Optional[tk.PhotoImage]:
+        from pathlib import Path
+        for candidate in [
+            Path("assets/logo_36.png"),
+            Path(__file__).resolve().parent.parent.parent / "assets" / "logo_36.png",
+            Path("GHBOT.png"),
+            Path(__file__).resolve().parent.parent.parent / "GHBOT.png",
+        ]:
+            if candidate.exists():
+                try:
+                    img = tk.PhotoImage(file=str(candidate))
+                    if img.width() > 40:
+                        sub = max(1, img.width() // 36)
+                        return img.subsample(sub, sub)
+                    return img
+                except Exception:
+                    pass
+        return None
+
     def _build_ui(self) -> None:
-        brand_frame = tk.Frame(self, bg=BG_SIDEBAR, padx=16, pady=20)
+        brand_frame = tk.Frame(self, bg=BG_SIDEBAR, padx=16, pady=18)
         brand_frame.pack(fill=tk.X)
 
+        brand_row = tk.Frame(brand_frame, bg=BG_SIDEBAR)
+        brand_row.pack(fill=tk.X)
+
+        if self._logo_image:
+            logo_lbl = tk.Label(
+                brand_row,
+                image=self._logo_image,
+                bg=BG_SIDEBAR,
+            )
+            logo_lbl.pack(side=tk.LEFT, padx=(0, 10))
+
+        text_col = tk.Frame(brand_row, bg=BG_SIDEBAR)
+        text_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
         title_lbl = tk.Label(
-            brand_frame,
+            text_col,
             text="GH-BOT-MAC",
             font=FONT_CARD_TITLE,
             fg=FG_PRIMARY,
             bg=BG_SIDEBAR,
+            anchor="w",
         )
-        title_lbl.pack(anchor="w")
+        title_lbl.pack(fill=tk.X)
 
         version_lbl = tk.Label(
-            brand_frame,
+            text_col,
             text="v1.0.0 • macOS Native",
             font=FONT_SMALL,
             fg=FG_MUTED,
             bg=BG_SIDEBAR,
+            anchor="w",
         )
-        version_lbl.pack(anchor="w", pady=(2, 0))
+        version_lbl.pack(fill=tk.X, pady=(2, 0))
 
-        tk.Frame(self, bg=COLOR_BORDER, height=1).pack(fill=tk.X, padx=16, pady=(0, 14))
+        tk.Frame(self, bg=COLOR_BORDER, height=1).pack(fill=tk.X, padx=16, pady=(14, 14))
 
         tk.Label(
             self,

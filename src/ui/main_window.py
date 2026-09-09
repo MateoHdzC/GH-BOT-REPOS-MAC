@@ -57,10 +57,27 @@ class MainWindow(tk.Tk):
         self.configure(bg=BG_WINDOW)
 
         self.protocol("WM_DELETE_WINDOW", self.hide_to_background)
+        self._set_window_icon()
 
         self.current_view_key = "all"
         self._build_layout()
         self._schedule_periodic_refresh()
+
+    def _set_window_icon(self) -> None:
+        from pathlib import Path
+        for candidate in [
+            Path("assets/logo_64.png"),
+            Path(__file__).resolve().parent.parent.parent / "assets" / "logo_64.png",
+            Path("GHBOT.png"),
+            Path(__file__).resolve().parent.parent.parent / "GHBOT.png",
+        ]:
+            if candidate.exists():
+                try:
+                    self._app_icon_img = tk.PhotoImage(file=str(candidate))
+                    self.iconphoto(True, self._app_icon_img)
+                    break
+                except Exception:
+                    pass
 
     def _build_layout(self) -> None:
         main_container = tk.Frame(self, bg=BG_WINDOW)

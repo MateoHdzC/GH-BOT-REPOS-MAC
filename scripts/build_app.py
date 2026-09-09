@@ -36,6 +36,7 @@ def build_app() -> bool:
         "CFBundlePackageType": "APPL",
         "CFBundleSignature": "????",
         "CFBundleExecutable": "GH-BOT-REPOS-MAC",
+        "CFBundleIconFile": "AppIcon",
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
         "LSUIElement": False,
@@ -43,6 +44,10 @@ def build_app() -> bool:
 
     with open(contents_dir / "Info.plist", "wb") as f:
         plistlib.dump(info_plist_data, f)
+
+    icns_src = WORKSPACE_ROOT / "assets" / "AppIcon.icns"
+    if icns_src.exists():
+        shutil.copy2(icns_src, resources_dir / "AppIcon.icns")
 
     with open(contents_dir / "PkgInfo", "w", encoding="utf-8") as f:
         f.write("APPL????")
