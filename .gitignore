@@ -46,6 +46,10 @@ venv.bak/
 !.env.example
 secrets.*
 credentials.*
+.secrets.*
+*.secrets.*
+config/.secrets.json
+config/projects.json
 *.pem
 *.key
 *.cert
