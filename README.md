@@ -68,13 +68,15 @@ open dist/GH-BOT-REPOS-MAC.app
    - **Nombre del proyecto**: Se completa automáticamente con el nombre de la carpeta (personalizable).
    - **Link de GitHub (URL Remota)**: Ingresá la URL del repositorio remoto (ej. `https://github.com/usuario/repo.git`).
    - **Modo de sincronización**: Seleccioná `AUTO`, `COMMIT_ONLY` o `PAUSED`.
+   - **Tiempo de espera tras cambios**: Elegí el tiempo de inactividad que debe transcurrir tras modificar archivos antes de sincronizar (`1m`, `4m`, `5m`, `10m`, `30m`, `1h`, `2h`, `3h`, `4h`, `8h`, `24h` o personalizado).
 3. Hacé clic en **Guardar y Empezar a Vigilar**.
 
-### 3. Modos de Operación
-Cada repositorio registrado funciona de manera independiente en uno de tres modos:
-- **`AUTO`**: Vigila eventos en el sistema de archivos. Cuando detecta cambios, espera la ventana de inactividad (5 minutos sin nuevos cambios), añade todos los archivos (`git add .`), genera un commit automático y lo sube a GitHub (`git push -u origin <rama>`).
-- **`COMMIT_ONLY`**: Genera commits locales automáticamente al estabilizarse los cambios, pero nunca ejecuta `git push`.
-- **`PAUSED`**: Detiene temporalmente la observación del sistema de archivos y los temporizadores para el repositorio seleccionado.
+### 3. Modos de Operación y Tiempos de Espera
+Cada repositorio registrado funciona de manera independiente con su propio modo y tiempo de espera:
+- **`AUTO`**: Vigila eventos en el sistema de archivos. Cuando detecta cambios, espera el tiempo configurado (ej: 4m, 10m, 1h, 8h de inactividad sin nuevos cambios), añade todos los archivos (`git add .`), genera un commit automático y lo sube a GitHub (`git push -u origin <rama>`).
+- **`COMMIT_ONLY`**: Genera commits locales automáticamente al transcurrir el tiempo de espera, pero nunca ejecuta `git push`.
+- **`PAUSED`**: Detiene temporalmente la observación del sistema de archivos y cancela temporizadores para el repositorio seleccionado.
+- **Cambio de tiempo en tiempo real**: Podés cambiar el tiempo de espera de cualquier proyecto directamente desde su tarjeta o establecer un valor por defecto global en *Configuración*.
 
 ### 4. Sincronización Inmediata ("Subir ahora")
 Hacé clic en **⚡ Subir ahora** en la tarjeta de cualquier proyecto para omitir los temporizadores de inactividad y forzar de inmediato el staging, commit y push hacia GitHub.

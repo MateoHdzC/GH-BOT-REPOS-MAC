@@ -40,6 +40,7 @@ from src.ui.styles import (
 )
 from src.utils.autostart import disable_autostart, enable_autostart, is_autostart_enabled
 from src.utils.constants import DEFAULT_LOG_PATH
+from src.utils.time_utils import DEBOUNCE_PRESETS, format_duration, parse_duration_string
 
 
 class ProjectCard(tk.Frame):
@@ -52,6 +53,7 @@ class ProjectCard(tk.Frame):
         on_mode_change: Callable[[str, ProjectMode], None],
         on_manual_sync: Callable[[str], None],
         on_delete: Callable[[str], None],
+        on_debounce_change: Optional[Callable[[str, int], None]] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -67,6 +69,7 @@ class ProjectCard(tk.Frame):
         self.on_mode_change = on_mode_change
         self.on_manual_sync = on_manual_sync
         self.on_delete = on_delete
+        self.on_debounce_change = on_debounce_change
 
         self._build_ui()
 
@@ -96,6 +99,21 @@ class ProjectCard(tk.Frame):
             )
             branch_lbl.pack(side=tk.LEFT, padx=(10, 0))
 
+        badges_frame = tk.Frame(header, bg=BG_CARD)
+        badges_frame.pack(side=tk.RIGHT)
+
+        time_str = format_duration(self.state.debounce_seconds)
+        time_badge = tk.Label(
+            badges_frame,
+            text=f" ⏱️ {time_str} ",
+            font=FONT_BADGE,
+            fg=FG_SECONDARY,
+            bg=BG_BUTTON_SECONDARY,
+            padx=5,
+            pady=2,
+        )
+        time_badge.pack(side=tk.LEFT, padx=(0, 6))
+
         badge_bg = (
             BG_BADGE_AUTO
             if self.state.mode == ProjectMode.AUTO
@@ -107,7 +125,7 @@ class ProjectCard(tk.Frame):
             else (COLOR_WARNING if self.state.mode == ProjectMode.COMMIT_ONLY else FG_MUTED)
         )
         badge = tk.Label(
-            header,
+            badges_frame,
             text=f" {self.state.mode.value} ",
             font=FONT_BADGE,
             fg=badge_fg,
@@ -115,7 +133,7 @@ class ProjectCard(tk.Frame):
             padx=6,
             pady=2,
         )
-        badge.pack(side=tk.RIGHT)
+        badge.pack(side=tk.LEFT)
 
         path_str = self._format_path(self.state.path)
         path_lbl = tk.Label(
@@ -148,15 +166,33 @@ class ProjectCard(tk.Frame):
             textvariable=mode_var,
             values=["AUTO", "COMMIT_ONLY", "PAUSED"],
             state="readonly",
-            width=13,
+            width=12,
         )
-        mode_cb.pack(side=tk.LEFT, padx=(0, 10))
+        mode_cb.pack(side=tk.LEFT, padx=(0, 8))
         mode_cb.bind(
             "<<ComboboxSelected>>",
             lambda e: self.on_mode_change(
                 self.state.name, ProjectMode.from_string(mode_var.get())
             ),
         )
+
+        debounce_var = tk.StringVar(value=format_duration(self.state.debounce_seconds))
+        debounce_cb = ttk.Combobox(
+            actions,
+            textvariable=debounce_var,
+            values=DEBOUNCE_PRESETS,
+            width=7,
+        )
+        debounce_cb.pack(side=tk.LEFT, padx=(0, 8))
+
+        def _on_debounce_chosen(event=None):
+            parsed = parse_duration_string(debounce_var.get())
+            if parsed and self.on_debounce_change:
+                self.on_debounce_change(self.state.name, parsed)
+
+        debounce_cb.bind("<<ComboboxSelected>>", _on_debounce_chosen)
+        debounce_cb.bind("<Return>", _on_debounce_chosen)
+        debounce_cb.bind("<FocusOut>", _on_debounce_chosen)
 
         sync_btn = tk.Button(
             actions,
@@ -412,6 +448,54 @@ class SettingsView(tk.Frame):
         )
         self.gh_btn.pack(anchor="w")
 
+        card_debounce = tk.Frame(self, bg=BG_CARD, highlightbackground=COLOR_BORDER, highlightthickness=1, padx=16, pady=16)
+        card_debounce.pack(fill=tk.X, pady=(0, 14))
+
+        tk.Label(
+            card_debounce,
+            text="Tiempo de Espera Global (Debounce por Defecto)",
+            font=FONT_CARD_TITLE,
+            fg=FG_PRIMARY,
+            bg=BG_CARD,
+        ).pack(anchor="w")
+
+        tk.Label(
+            card_debounce,
+            text="Tiempo de inactividad que espera el bot tras detectar cambios antes de sincronizar (ej: 4m, 5m, 10m, 1h, 2h, 8h).",
+            font=FONT_SUBTITLE,
+            fg=FG_MUTED,
+            bg=BG_CARD,
+        ).pack(anchor="w", pady=(2, 10))
+
+        debounce_row = tk.Frame(card_debounce, bg=BG_CARD)
+        debounce_row.pack(fill=tk.X)
+
+        current_default = format_duration(self.engine.config.default_debounce_seconds)
+        if current_default == "5m":
+            current_default = "5m (Recomendado)"
+        self.default_debounce_var = tk.StringVar(value=current_default)
+        default_cb = ttk.Combobox(
+            debounce_row,
+            textvariable=self.default_debounce_var,
+            values=DEBOUNCE_PRESETS,
+            width=18,
+        )
+        default_cb.pack(side=tk.LEFT, padx=(0, 10))
+
+        save_debounce_btn = tk.Button(
+            debounce_row,
+            text="Guardar Tiempo",
+            font=FONT_BUTTON,
+            bg=BG_BUTTON_SECONDARY,
+            fg=FG_PRIMARY,
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+            cursor="pointinghand",
+            command=self._save_default_debounce,
+        )
+        save_debounce_btn.pack(side=tk.LEFT)
+
         card3 = tk.Frame(self, bg=BG_CARD, highlightbackground=COLOR_BORDER, highlightthickness=1, padx=16, pady=16)
         card3.pack(fill=tk.X)
 
@@ -432,6 +516,14 @@ class SettingsView(tk.Frame):
             bg=BG_CARD,
             justify="left",
         ).pack(anchor="w")
+
+    def _save_default_debounce(self) -> None:
+        parsed = parse_duration_string(self.default_debounce_var.get())
+        if parsed:
+            self.engine.set_default_debounce(parsed)
+            messagebox.showinfo("Configuración Guardada", f"Tiempo de espera global establecido en {format_duration(parsed)}.", parent=self)
+        else:
+            messagebox.showerror("Formato Inválido", "Por favor ingresa un tiempo válido (ej: 4m, 5m, 10m, 1h, 8h).", parent=self)
 
     def _toggle_autostart(self) -> None:
         if self.autostart_var.get():
@@ -592,7 +684,7 @@ class AddProjectDialog(tk.Toplevel):
     ) -> None:
         super().__init__(parent)
         self.title("Añadir Proyecto")
-        self.geometry("490x510")
+        self.geometry("490x580")
         self.resizable(False, False)
         self.configure(bg=BG_CARD)
         self.transient(parent)
@@ -717,8 +809,14 @@ class AddProjectDialog(tk.Toplevel):
             bg=BG_CARD,
         ).pack(anchor="w", pady=(0, 10))
 
+        options_row = tk.Frame(pad, bg=BG_CARD)
+        options_row.pack(fill=tk.X, pady=(0, 16))
+
+        col_mode = tk.Frame(options_row, bg=BG_CARD)
+        col_mode.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
+
         tk.Label(
-            pad,
+            col_mode,
             text="Modo de sincronización:",
             font=FONT_SMALL,
             fg=FG_SECONDARY,
@@ -727,12 +825,34 @@ class AddProjectDialog(tk.Toplevel):
 
         self.mode_var = tk.StringVar(value="AUTO")
         mode_cb = ttk.Combobox(
-            pad,
+            col_mode,
             textvariable=self.mode_var,
             values=["AUTO", "COMMIT_ONLY", "PAUSED"],
             state="readonly",
         )
-        mode_cb.pack(fill=tk.X, pady=(2, 18))
+        mode_cb.pack(fill=tk.X, pady=(2, 0))
+
+        col_time = tk.Frame(options_row, bg=BG_CARD)
+        col_time.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=(8, 0))
+
+        tk.Label(
+            col_time,
+            text="Tiempo de espera tras cambios:",
+            font=FONT_SMALL,
+            fg=FG_SECONDARY,
+            bg=BG_CARD,
+        ).pack(anchor="w")
+
+        default_preset = format_duration(self.engine.config.default_debounce_seconds)
+        if default_preset == "5m":
+            default_preset = "5m (Recomendado)"
+        self.debounce_var = tk.StringVar(value=default_preset)
+        debounce_cb = ttk.Combobox(
+            col_time,
+            textvariable=self.debounce_var,
+            values=DEBOUNCE_PRESETS,
+        )
+        debounce_cb.pack(fill=tk.X, pady=(2, 0))
 
         btns = tk.Frame(pad, bg=BG_CARD)
         btns.pack(fill=tk.X)
@@ -799,6 +919,9 @@ class AddProjectDialog(tk.Toplevel):
         remote_url = self.remote_url_var.get().strip() or None
         mode = ProjectMode.from_string(self.mode_var.get())
 
+        raw_time = self.debounce_var.get().strip()
+        parsed_debounce = parse_duration_string(raw_time) or self.engine.config.default_debounce_seconds
+
         if not self.engine.git_manager.is_git_repo(dir_path):
             confirm = messagebox.askyesno(
                 "Inicializar Repositorio Git",
@@ -818,6 +941,7 @@ class AddProjectDialog(tk.Toplevel):
             path=dir_path,
             mode=mode,
             remote_url=remote_url,
+            debounce_seconds=parsed_debounce,
         )
 
         if success:

@@ -222,6 +222,7 @@ class MainWindow(tk.Tk):
                 on_mode_change=self._handle_mode_change,
                 on_manual_sync=self._handle_manual_sync,
                 on_delete=self._handle_delete_project,
+                on_debounce_change=self._handle_debounce_change,
             )
             card.pack(fill=tk.X, pady=(0, 12))
 
@@ -231,7 +232,6 @@ class MainWindow(tk.Tk):
         self.after(2500, self._schedule_periodic_refresh)
 
     def _prompt_add_project(self) -> None:
-        """Opens the modal dialog to configure local directory and GitHub remote URL."""
         AddProjectDialog(
             parent=self,
             engine=self.engine,
@@ -240,6 +240,13 @@ class MainWindow(tk.Tk):
 
     def _handle_mode_change(self, project_name: str, new_mode: ProjectMode) -> None:
         success, msg = self.engine.set_project_mode(project_name, new_mode)
+        if success:
+            self._render_current_view()
+        else:
+            messagebox.showerror("Error", msg, parent=self)
+
+    def _handle_debounce_change(self, project_name: str, new_seconds: int) -> None:
+        success, msg = self.engine.set_project_debounce(project_name, new_seconds)
         if success:
             self._render_current_view()
         else:

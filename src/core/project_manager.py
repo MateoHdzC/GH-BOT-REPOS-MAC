@@ -278,6 +278,37 @@ class ProjectManager:
         logger.info(f"[PROJECT] Project '{name}' configuration updated.")
         return True, f"Project '{name}' updated successfully."
 
+    def set_project_debounce(
+        self, name: str, debounce_seconds: int
+    ) -> tuple[bool, str]:
+        project = self.get_project(name)
+        if not project:
+            msg = f"Project '{name}' was not found."
+            logger.warning(f"[PROJECT] [ERROR] {msg}")
+            return False, msg
+
+        actual_debounce = max(1, int(debounce_seconds))
+        updated_project = ProjectConfig(
+            name=project.name,
+            path=project.path,
+            enabled=project.enabled,
+            mode=project.mode,
+            branch=project.branch,
+            remote=project.remote,
+            commit_message=project.commit_message,
+            debounce_seconds=actual_debounce,
+        )
+
+        self._update_in_list(updated_project)
+        self.config_manager.save_config(self._config)
+        self.watcher_manager.add_or_update_watcher(updated_project)
+
+        if self.on_project_changed:
+            self.on_project_changed(updated_project)
+
+        logger.info(f"[PROJECT] Project '{name}' debounce updated to {actual_debounce}s.")
+        return True, f"Project '{name}' debounce updated to {actual_debounce}s."
+
     def _update_in_list(self, project: ProjectConfig) -> None:
         new_list = []
         for p in self._config.projects:

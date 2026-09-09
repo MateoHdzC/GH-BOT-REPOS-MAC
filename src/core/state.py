@@ -38,16 +38,17 @@ class ProjectRuntimeState:
     last_commit_message: Optional[str] = None
     last_push_at: Optional[str] = None
     last_sync_status: SyncStatus = SyncStatus.IDLE
+    debounce_seconds: int = 300
     last_error: Optional[str] = None
     last_error_type: Optional[str] = None
 
     def to_dict(self) -> dict:
-        """Serializes runtime state for UI consumers."""
         return {
             "name": self.name,
             "path": self.path,
             "mode": self.mode.value,
             "enabled": self.enabled,
+            "debounce_seconds": self.debounce_seconds,
             "is_watching": self.is_watching,
             "is_timer_running": self.is_timer_running,
             "current_branch": self.current_branch,

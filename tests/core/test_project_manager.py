@@ -239,6 +239,10 @@ class TestProjectManager(unittest.TestCase):
                 pm.set_project_enabled("ModeTest", False)
                 p_disabled = pm.get_project("ModeTest")
                 self.assertFalse(p_disabled.enabled)
+
+                pm.set_project_debounce("ModeTest", 3600)
+                p_debounce = pm.get_project("ModeTest")
+                self.assertEqual(p_debounce.debounce_seconds, 3600)
             finally:
                 watcher_mgr.stop_all()
 

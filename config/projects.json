@@ -10,7 +10,7 @@
       "branch": "main",
       "remote": "origin",
       "commit_message": "auto: update project",
-      "debounce_seconds": 300
+      "debounce_seconds": 60
     }
   ]
 }

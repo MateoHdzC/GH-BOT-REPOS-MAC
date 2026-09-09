@@ -59,6 +59,7 @@ class BotEngine:
                     path=str(project.path),
                     mode=project.mode,
                     enabled=project.enabled,
+                    debounce_seconds=project.debounce_seconds,
                     current_branch=branch,
                     last_commit_hash=last_commit.hash if last_commit else None,
                     last_commit_message=last_commit.message if last_commit else None,
@@ -67,13 +68,13 @@ class BotEngine:
             return self._states[project.name]
 
     def _on_project_changed(self, project: ProjectConfig) -> None:
-        """Callback invoked when a project configuration is modified."""
         with self._states_lock:
             state = self._states.get(project.name)
             if state:
                 state.mode = project.mode
                 state.enabled = project.enabled
                 state.path = str(project.path)
+                state.debounce_seconds = project.debounce_seconds
             else:
                 self._get_or_create_state(project)
 
@@ -334,11 +335,16 @@ class BotEngine:
         return self.project_manager.remove_project(name)
 
     def set_project_mode(self, name: str, mode: Union[ProjectMode, str]) -> tuple[bool, str]:
-        """Changes the project mode to AUTO, COMMIT_ONLY, or PAUSED."""
         return self.project_manager.set_project_mode(name, mode)
 
+    def set_project_debounce(self, name: str, debounce_seconds: int) -> tuple[bool, str]:
+        return self.project_manager.set_project_debounce(name, debounce_seconds)
+
+    def set_default_debounce(self, debounce_seconds: int) -> bool:
+        self.config.default_debounce_seconds = max(1, int(debounce_seconds))
+        return self.config_manager.save_config(self.config)
+
     def set_project_enabled(self, name: str, enabled: bool) -> tuple[bool, str]:
-        """Enables or disables project monitoring."""
         return self.project_manager.set_project_enabled(name, enabled)
 
     def get_project_state(self, project_name: str) -> Optional[ProjectRuntimeState]:
