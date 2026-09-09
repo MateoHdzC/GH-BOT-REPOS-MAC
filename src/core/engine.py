@@ -37,7 +37,6 @@ class BotEngine:
         self._start_time: float = time.time()
         self._is_running = False
 
-        # Project manager integration
         self.project_manager = ProjectManager(
             config_manager=self.config_manager,
             git_manager=self.git_manager,
@@ -95,7 +94,6 @@ class BotEngine:
                 "[SYSTEM] No enabled projects found in configuration. Bot will idle."
             )
 
-        # Pre-validate project directories and populate initial runtime states
         for project in self.config.projects:
             resolved = project.resolved_path()
             state = self._get_or_create_state(project)
@@ -117,7 +115,6 @@ class BotEngine:
                     f"[PROJECT] Verified Git repository '{project.name}' at {resolved} (Branch: {branch or 'unknown'}, Mode: {project.mode.value})"
                 )
 
-        # Restore persistent GitHub account if saved in config
         if self.config.github_username and not self.github_service.is_connected():
             self.github_service.connect(self.config.github_username, auth_type="keychain")
 
@@ -148,7 +145,6 @@ class BotEngine:
         resolved_path = project.resolved_path()
         state = self._get_or_create_state(project)
 
-        # 1. Check PAUSED state
         if project.mode == ProjectMode.PAUSED and not manual:
             logger.info(f"[PROJECT] [{project.name}] Sync skipped: project is PAUSED.")
             state.last_sync_status = SyncStatus.SKIPPED_PAUSED
@@ -165,7 +161,6 @@ class BotEngine:
         state.last_sync_status = SyncStatus.SYNCING
 
         try:
-            # 2. Validate repository
             if not self.git_manager.is_git_repo(resolved_path):
                 err_msg = f"{resolved_path} is not a valid Git repository."
                 logger.error(f"[GIT] [ERROR] [{project.name}] Pipeline aborted: {err_msg}")
@@ -173,16 +168,13 @@ class BotEngine:
                 state.last_sync_status = SyncStatus.ERROR
                 return False
 
-            # Update current branch
             state.current_branch = self.git_manager.get_current_branch(resolved_path)
 
-            # 3. Inspect status
             initial_status = self.git_manager.get_status(resolved_path)
             logger.debug(
                 f"[GIT] [{project.name}] Initial status - Changes: {initial_status.has_changes}, Untracked: {initial_status.untracked_files_count}"
             )
 
-            # 4. Stage all changes (git add .)
             stage_result = self.git_manager.stage_all(resolved_path)
             if not stage_result.success:
                 err_msg = stage_result.error_message or "Staging failed"
@@ -191,7 +183,6 @@ class BotEngine:
                 state.last_sync_status = SyncStatus.STAGING_FAILED
                 return False
 
-            # 5. Commit changes if new staged differences exist
             has_staged = self.git_manager.has_staged_changes(resolved_path)
             if has_staged:
                 now_str = datetime.now().isoformat()
@@ -218,7 +209,6 @@ class BotEngine:
             else:
                 logger.info(f"[GIT] [{project.name}] No new uncommitted changes found in working tree.")
 
-            # 6. Push handling according to mode
             should_push = (project.mode == ProjectMode.AUTO) or (manual and project.mode != ProjectMode.COMMIT_ONLY)
 
             if should_push:
@@ -288,7 +278,6 @@ class BotEngine:
             state.last_sync_status = SyncStatus.ERROR
             return False
 
-    # --- Public API for UI / External Consumers ---
 
     def sync_project(self, project_name: str) -> tuple[bool, str]:
         """Manually triggers the Git pipeline for a project (UI 'SUBIR AHORA' action)."""
@@ -402,7 +391,6 @@ class BotEngine:
                 projects=runtime_states,
             )
 
-    # GitHub Service shortcuts
     def connect_github(
         self,
         username: str,

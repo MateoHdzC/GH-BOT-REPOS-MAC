@@ -44,7 +44,6 @@ class SidebarNav(tk.Frame):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        # Header Brand
         brand_frame = tk.Frame(self, bg=BG_SIDEBAR, padx=16, pady=20)
         brand_frame.pack(fill=tk.X)
 
@@ -66,10 +65,8 @@ class SidebarNav(tk.Frame):
         )
         version_lbl.pack(anchor="w", pady=(2, 0))
 
-        # Divider
         tk.Frame(self, bg=COLOR_BORDER, height=1).pack(fill=tk.X, padx=16, pady=(0, 14))
 
-        # Category: PROYECTOS
         tk.Label(
             self,
             text="PROYECTOS",
@@ -83,7 +80,6 @@ class SidebarNav(tk.Frame):
         self._create_nav_item("active", "🟢  Activos", count="0")
         self._create_nav_item("paused", "⚪  Pausados", count="0")
 
-        # Category: SISTEMA
         tk.Label(
             self,
             text="SISTEMA",
@@ -96,7 +92,6 @@ class SidebarNav(tk.Frame):
         self._create_nav_item("logs", "📋  Actividad / Logs")
         self._create_nav_item("settings", "⚙️  Configuración")
 
-        # Bottom System Health & Quit
         bottom_frame = tk.Frame(self, bg=BG_SIDEBAR, padx=16, pady=16)
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
 

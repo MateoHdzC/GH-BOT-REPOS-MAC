@@ -13,30 +13,24 @@ class TestGitManagerPhase2(unittest.TestCase):
     def test_classify_push_error_types(self) -> None:
         git_mgr = GitManager()
 
-        # Auth failures
         auth_err = "Permission denied (publickey). fatal: Could not read from remote repository."
         self.assertEqual(git_mgr.classify_push_error(auth_err, 128), GitErrorType.AUTH_FAILED)
 
         token_err = "fatal: Authentication failed for 'https://github.com/user/repo.git/'"
         self.assertEqual(git_mgr.classify_push_error(token_err, 128), GitErrorType.AUTH_FAILED)
 
-        # Network errors
         net_err = "fatal: unable to access 'https://github.com/...': Could not resolve host: github.com"
         self.assertEqual(git_mgr.classify_push_error(net_err, 128), GitErrorType.NETWORK_ERROR)
 
-        # Non-fast-forward rejection
         reject_err = "error: failed to push some refs to '...'\nhint: Updates were rejected because the remote contains work that you do not have locally (fetch first)."
         self.assertEqual(git_mgr.classify_push_error(reject_err, 1), GitErrorType.REJECTED_NON_FAST_FORWARD)
 
-        # Conflict
         conflict_err = "error: you have divergent branches and need to specify how to reconcile them."
         self.assertEqual(git_mgr.classify_push_error(conflict_err, 1), GitErrorType.CONFLICT)
 
-        # Branch not found
         branch_err = "error: src refspec feature-xyz does not match any"
         self.assertEqual(git_mgr.classify_push_error(branch_err, 1), GitErrorType.BRANCH_NOT_FOUND)
 
-        # Remote not found
         remote_err = "fatal: 'upstream' does not appear to be a git repository"
         self.assertEqual(git_mgr.classify_push_error(remote_err, 128), GitErrorType.REMOTE_NOT_FOUND)
 

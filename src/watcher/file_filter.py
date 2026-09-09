@@ -23,17 +23,14 @@ def is_path_ignored(
     path_obj = Path(path)
     parts = set(path_obj.parts)
 
-    # Check if any parent folder component matches ignored directory names
     if any(dir_name in parts for dir_name in ignored_dirs):
         return True
 
     filename = path_obj.name
 
-    # Check direct filename match
     if filename in ignored_patterns:
         return True
 
-    # Check glob pattern matches
     for pattern in ignored_patterns:
         if fnmatch.fnmatch(filename, pattern):
             return True

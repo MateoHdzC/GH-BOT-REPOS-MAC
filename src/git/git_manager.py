@@ -93,12 +93,10 @@ class GitManager:
         if not resolved.exists() or not resolved.is_dir():
             return False
 
-        # 1. Direct filesystem check for .git directory or file (submodule/worktree)
         git_entry = resolved / ".git"
         if git_entry.exists() and (git_entry.is_dir() or git_entry.is_file()):
             return True
 
-        # 2. Fallback to git CLI query
         result = self._run_command(["rev-parse", "--is-inside-work-tree"], cwd=resolved)
         return result.success and result.stdout.lower() == "true"
 
@@ -169,7 +167,6 @@ class GitManager:
     def get_last_commit_info(self, repo_path: Path) -> Optional[CommitInfo]:
         """Retrieves metadata of the most recent commit on the active branch."""
         resolved = repo_path.expanduser().resolve()
-        # Format: %H (hash) \0 %s (subject) \0 %an (author) \0 %cI (ISO timestamp)
         result = self._run_command(
             ["log", "-1", "--pretty=format:%H%x00%s%x00%an%x00%cI"],
             cwd=resolved,
@@ -259,7 +256,6 @@ class GitManager:
     def has_staged_changes(self, repo_path: Path) -> bool:
         """Checks if there are differences staged in the index ready to be committed."""
         resolved = repo_path.expanduser().resolve()
-        # git diff --cached --quiet exits with 0 if no diff, 1 if diff
         result = self._run_command(["diff", "--cached", "--quiet"], cwd=resolved)
         return result.returncode == 1
 
@@ -316,7 +312,6 @@ class GitManager:
         """
         resolved = repo_path.expanduser().resolve()
 
-        # 1. Check if repository has remotes configured
         remotes = self.get_remotes(resolved)
         if not remotes:
             err_msg = f"Repository has no configured remotes. Cannot push to '{remote}'."
@@ -356,7 +351,6 @@ class GitManager:
             logger.info(f"[GIT] [PUSH] Push completed successfully for {resolved}")
             return result
 
-        # Classify the error
         error_type = self.classify_push_error(result.stderr, result.returncode)
         logger.warning(
             f"[GIT] [PUSH] [ERROR] Push failed for {resolved} (Type: {error_type.value}): {result.error_message}"

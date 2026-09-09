@@ -80,45 +80,38 @@ class ProjectManager:
         raw_path = Path(path)
         resolved_path = raw_path.expanduser().resolve()
 
-        # 1. Validate path exists
         if not resolved_path.exists():
             msg = f"Directory does not exist: {resolved_path}"
             logger.error(f"[PROJECT] [ERROR] [{clean_name}] {msg}")
             return False, msg, None
 
-        # 2. Validate is a directory
         if not resolved_path.is_dir():
             msg = f"Specified path is not a directory: {resolved_path}"
             logger.error(f"[PROJECT] [ERROR] [{clean_name}] {msg}")
             return False, msg, None
 
-        # 3. Validate is a Git repository
         if not self.git_manager.is_git_repo(resolved_path):
             msg = f"Path is not a valid Git repository: {resolved_path}"
             logger.error(f"[PROJECT] [ERROR] [{clean_name}] {msg}")
             return False, msg, None
 
-        # 4. If a remote URL is specified, configure or update Git remote
         remote_name = remote.strip() or DEFAULT_REMOTE
         if remote_url and remote_url.strip():
             rem_res = self.git_manager.set_remote_url(resolved_path, remote_url.strip(), remote_name=remote_name)
             if not rem_res.success:
                 logger.warning(f"[PROJECT] Warning setting remote '{remote_name}' to '{remote_url}': {rem_res.error_message}")
 
-        # 5. Check for duplicates by canonical path
         if self._config.get_project_by_path(resolved_path) is not None:
             msg = f"A project pointing to directory '{resolved_path}' is already registered."
             logger.warning(f"[PROJECT] [ERROR] {msg}")
             return False, msg, None
 
-        # 6. Handle duplicate name by auto-disambiguating
         final_name = clean_name
         counter = 2
         while self._config.get_project_by_name(final_name) is not None:
             final_name = f"{clean_name} ({counter})"
             counter += 1
 
-        # Parse mode
         parsed_mode = (
             mode if isinstance(mode, ProjectMode) else ProjectMode.from_string(str(mode))
         )
@@ -148,7 +141,6 @@ class ProjectManager:
             logger.error(f"[PROJECT] [ERROR] [{clean_name}] {msg}")
             return False, msg, None
 
-        # Start watcher if project is enabled
         self.watcher_manager.add_or_update_watcher(new_project)
         if self.on_project_changed:
             self.on_project_changed(new_project)
@@ -169,10 +161,8 @@ class ProjectManager:
             logger.warning(f"[PROJECT] [ERROR] {msg}")
             return False, msg
 
-        # Stop watcher and cancel pending timers
         self.watcher_manager.remove_watcher(name)
 
-        # Remove from configuration list
         self._config.projects = [p for p in self._config.projects if p.name != name]
         self.config_manager.save_config(self._config)
 

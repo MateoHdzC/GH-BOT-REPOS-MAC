@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 """Automated test runner executing all unit and integration tests."""
 
 import sys
 import unittest
 from pathlib import Path
 
-# Ensure workspace root is in sys.path
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WORKSPACE_ROOT))
 

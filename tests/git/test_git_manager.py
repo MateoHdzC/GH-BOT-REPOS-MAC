@@ -39,22 +39,18 @@ class TestGitManager(unittest.TestCase):
 
             git_mgr = GitManager()
 
-            # Initial status - clean
             status = git_mgr.get_status(repo_dir)
             self.assertTrue(status.is_git_repo)
             self.assertFalse(status.has_changes)
 
-            # Create file
             sample_file = repo_dir / "sample.txt"
             sample_file.write_text("Hello World\n", encoding="utf-8")
 
-            # Status changes
             status = git_mgr.get_status(repo_dir)
             self.assertTrue(status.has_changes)
             self.assertEqual(status.untracked_files_count, 1)
             self.assertTrue(git_mgr.has_changes(repo_dir))
 
-            # Stage
             stage_res = git_mgr.stage_all(repo_dir)
             self.assertTrue(stage_res.success)
             self.assertTrue(git_mgr.has_staged_changes(repo_dir))
@@ -67,22 +63,18 @@ class TestGitManager(unittest.TestCase):
 
             git_mgr = GitManager()
 
-            # Attempt commit without staged changes
             empty_res = git_mgr.commit(repo_dir, message="empty test")
             self.assertTrue(empty_res.success)
             self.assertIn("Nothing to commit", empty_res.stdout)
 
-            # Create and stage
             file_a = repo_dir / "file_a.md"
             file_a.write_text("Content A\n", encoding="utf-8")
             git_mgr.stage_all(repo_dir)
 
-            # Commit
             commit_res = git_mgr.commit(repo_dir, message="feat: add file_a")
             self.assertTrue(commit_res.success)
             self.assertFalse(git_mgr.has_staged_changes(repo_dir))
 
-            # Verify log
             log_res = subprocess.run(
                 ["git", "log", "-1", "--pretty=%B"],
                 cwd=str(repo_dir),
@@ -104,7 +96,6 @@ class TestGitManager(unittest.TestCase):
             git_mgr.stage_all(repo_dir)
             git_mgr.commit(repo_dir, message="feat: add file_b")
 
-            # Push to non-configured remote
             push_res = git_mgr.push(repo_dir, remote="origin")
             self.assertFalse(push_res.success)
             self.assertIsNotNone(push_res.error_message)

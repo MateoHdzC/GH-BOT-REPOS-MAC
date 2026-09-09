@@ -48,15 +48,12 @@ class TestBotEngine(unittest.TestCase):
             engine = BotEngine(config_path=config_file)
             engine.start()
 
-            # Create a new file in local repo
             new_file = local_repo / "feature.txt"
             new_file.write_text("Engine test content\n", encoding="utf-8")
 
-            # Trigger sync directly
             success = engine.process_project_sync(project_cfg)
             self.assertTrue(success)
 
-            # Verify commit exists
             log_check = subprocess.run(
                 ["git", "log", "-1", "--pretty=%B"],
                 cwd=str(local_repo),

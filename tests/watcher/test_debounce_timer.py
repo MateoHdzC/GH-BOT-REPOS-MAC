@@ -34,22 +34,17 @@ class TestDebounceTimer(unittest.TestCase):
 
         timer = DebounceTimer(interval_seconds=0.2, callback=callback)
 
-        # Trigger at t=0
         timer.trigger()
         time.sleep(0.1)
 
-        # Trigger again at t=0.1 (should reset the 0.2s countdown)
         timer.trigger()
         time.sleep(0.1)
 
-        # Trigger again at t=0.2 (should reset the 0.2s countdown)
         timer.trigger()
         time.sleep(0.1)
 
-        # At this point, callback should NOT have fired yet
         self.assertEqual(call_count, 0)
 
-        # Wait for the full quiet period (0.25s > 0.2s)
         time.sleep(0.25)
 
         self.assertEqual(call_count, 1)

@@ -13,7 +13,6 @@ from src.watcher.file_filter import is_path_ignored
 
 logger = get_logger("watcher")
 
-# Attempt importing watchdog for high-efficiency FSEvents monitoring on macOS
 try:
     from watchdog.events import FileSystemEvent, FileSystemEventHandler
     from watchdog.observers import Observer
@@ -21,9 +20,9 @@ try:
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
-    FileSystemEventHandler = object  # type: ignore
-    FileSystemEvent = Any  # type: ignore
-    Observer = Any  # type: ignore
+    FileSystemEventHandler = object
+    FileSystemEvent = Any
+    Observer = Any
 
 
 if WATCHDOG_AVAILABLE:
@@ -65,7 +64,7 @@ if WATCHDOG_AVAILABLE:
 
 else:
 
-    class RepoChangeEventHandler:  # type: ignore
+    class RepoChangeEventHandler:
         """Mock/fallback event handler when watchdog is not installed."""
 
         def __init__(

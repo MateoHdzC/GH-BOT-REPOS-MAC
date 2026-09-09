@@ -35,7 +35,6 @@ class TestUIRedesign(unittest.TestCase):
             engine = BotEngine(config_path=config_file)
             engine.start()
 
-            # Add two projects
             engine.add_project("ActiveProj", repo_1, mode=ProjectMode.AUTO)
             engine.add_project("PausedProj", repo_2, mode=ProjectMode.PAUSED)
 
@@ -44,7 +43,6 @@ class TestUIRedesign(unittest.TestCase):
             self.assertEqual(status.active_projects, 1)
             self.assertEqual(status.paused_projects, 1)
 
-            # Test switching mode
             engine.set_project_mode("PausedProj", ProjectMode.COMMIT_ONLY)
             status_after = engine.get_system_status()
             self.assertEqual(status_after.active_projects, 2)

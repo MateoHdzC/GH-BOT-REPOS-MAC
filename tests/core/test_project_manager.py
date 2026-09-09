@@ -49,7 +49,6 @@ class TestProjectManager(unittest.TestCase):
                 self.assertEqual(proj.mode, ProjectMode.AUTO)
                 self.assertEqual(proj.debounce_seconds, 120)
 
-                # Check config persistence
                 reloaded_config = cfg_mgr.load_config()
                 self.assertEqual(len(reloaded_config.projects), 1)
                 self.assertEqual(reloaded_config.projects[0].name, "MyProject")
@@ -79,7 +78,6 @@ class TestProjectManager(unittest.TestCase):
                 self.assertTrue(success)
                 self.assertIsNotNone(proj)
 
-                # Verify remote URL was configured in Git
                 configured_url = git_mgr.get_remote_url(repo_path, "origin")
                 self.assertEqual(configured_url, "https://github.com/octocat/hello-world.git")
             finally:
@@ -160,17 +158,14 @@ class TestProjectManager(unittest.TestCase):
                     watcher_mgr,
                 )
 
-                # Add first project
                 success, _, proj1 = pm.add_project("ProjectAlpha", repo_1)
                 self.assertTrue(success)
                 self.assertEqual(proj1.name, "ProjectAlpha")
 
-                # Duplicate name with different path auto-disambiguates
                 dup_name_success, msg_name, proj2 = pm.add_project("ProjectAlpha", repo_2)
                 self.assertTrue(dup_name_success)
                 self.assertEqual(proj2.name, "ProjectAlpha (2)")
 
-                # Attempt duplicate path with different name is rejected
                 dup_path_success, msg_path, _ = pm.add_project("ProjectBeta", repo_1)
                 self.assertFalse(dup_path_success)
                 self.assertIn("already registered", msg_path)
@@ -199,12 +194,10 @@ class TestProjectManager(unittest.TestCase):
                 pm.add_project("ToKeep", repo_path)
                 self.assertEqual(len(pm.list_projects()), 1)
 
-                # Remove project
                 remove_success, remove_msg = pm.remove_project("ToKeep")
                 self.assertTrue(remove_success)
                 self.assertEqual(len(pm.list_projects()), 0)
 
-                # CRITICAL: Verify local files and repo are completely intact
                 self.assertTrue(repo_path.exists())
                 self.assertTrue(file_inside.exists())
                 self.assertEqual(
@@ -235,17 +228,14 @@ class TestProjectManager(unittest.TestCase):
                 p = pm.get_project("ModeTest")
                 self.assertEqual(p.mode, ProjectMode.AUTO)
 
-                # Switch to COMMIT_ONLY
                 pm.set_project_mode("ModeTest", ProjectMode.COMMIT_ONLY)
                 p_updated = pm.get_project("ModeTest")
                 self.assertEqual(p_updated.mode, ProjectMode.COMMIT_ONLY)
 
-                # Switch to PAUSED
                 pm.set_project_mode("ModeTest", "PAUSED")
                 p_paused = pm.get_project("ModeTest")
                 self.assertEqual(p_paused.mode, ProjectMode.PAUSED)
 
-                # Toggle enabled
                 pm.set_project_enabled("ModeTest", False)
                 p_disabled = pm.get_project("ModeTest")
                 self.assertFalse(p_disabled.enabled)

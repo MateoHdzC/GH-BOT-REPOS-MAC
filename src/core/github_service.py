@@ -55,7 +55,6 @@ class GitHubAuthService:
             return False
 
         if token and token.strip():
-            # Store in macOS Keychain securely
             KeychainManager.save_credential(account=clean_user, secret=token.strip())
 
         self._connected = True

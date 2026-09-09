@@ -13,24 +13,20 @@ class TestAutostart(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             plist_path = Path(tmp_dir) / "com.test.ghbotmac.plist"
 
-            # Initially not enabled
             self.assertFalse(is_autostart_enabled(plist_path))
 
-            # Enable autostart
             app_root = Path(tmp_dir) / "app"
             success = enable_autostart(app_root=app_root, plist_path=plist_path)
             self.assertTrue(success)
             self.assertTrue(plist_path.exists())
             self.assertTrue(is_autostart_enabled(plist_path))
 
-            # Verify plist contents
             with open(plist_path, "rb") as f:
                 data = plistlib.load(f)
             self.assertEqual(data["Label"], "com.mateohdz.ghbotmac")
             self.assertTrue(data["RunAtLoad"])
             self.assertIn("--background", data["ProgramArguments"])
 
-            # Disable autostart
             disable_success = disable_autostart(plist_path)
             self.assertTrue(disable_success)
             self.assertFalse(plist_path.exists())

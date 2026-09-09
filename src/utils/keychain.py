@@ -30,7 +30,7 @@ class KeychainManager:
                     existing = {}
             existing[account] = secret
             SECRETS_FILE.write_text(json.dumps(existing, indent=2), encoding="utf-8")
-            os.chmod(SECRETS_FILE, 0o600)  # Restricted user-only permissions
+            os.chmod(SECRETS_FILE, 0o600)
             return True
         except Exception as err:
             logger.error(f"[SYSTEM] [ERROR] Failed to save local secrets: {err}")
@@ -64,7 +64,6 @@ class KeychainManager:
         if not account or not secret:
             return False
 
-        # 1. Remove old Keychain item if exists
         cmd_del = [
             "/usr/bin/security",
             "delete-generic-password",
@@ -78,10 +77,8 @@ class KeychainManager:
         except Exception:
             pass
 
-        # 2. Save to restricted local secrets file
         local_saved = KeychainManager._save_local_secret(account, secret)
 
-        # 3. Add to macOS Keychain
         cmd = [
             "/usr/bin/security",
             "add-generic-password",
@@ -109,7 +106,6 @@ class KeychainManager:
         if not account:
             return None
 
-        # 1. Try Keychain first
         cmd = [
             "/usr/bin/security",
             "find-generic-password",
@@ -126,7 +122,6 @@ class KeychainManager:
         except Exception:
             pass
 
-        # 2. Fallback to private local secrets file
         return KeychainManager._get_local_secret(account)
 
     @staticmethod

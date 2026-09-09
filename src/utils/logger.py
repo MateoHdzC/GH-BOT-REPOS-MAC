@@ -13,7 +13,7 @@ _LOGGER_INITIALIZED = False
 def setup_logger(
     log_file: Optional[Path] = None,
     level: int = logging.INFO,
-    max_bytes: int = 5 * 1024 * 1024,  # 5 MB
+    max_bytes: int = 5 * 1024 * 1024,
     backup_count: int = 3,
 ) -> logging.Logger:
     """Configures and returns the root application logger.
@@ -42,13 +42,11 @@ def setup_logger(
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # File handler with rotation
     try:
         file_handler = RotatingFileHandler(
             filename=str(target_log_file),

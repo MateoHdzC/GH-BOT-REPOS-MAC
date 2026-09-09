@@ -56,7 +56,6 @@ class MainWindow(tk.Tk):
         self.minsize(760, 520)
         self.configure(bg=BG_WINDOW)
 
-        # Intercept window close to keep running in background
         self.protocol("WM_DELETE_WINDOW", self.hide_to_background)
 
         self.current_view_key = "all"
@@ -64,11 +63,9 @@ class MainWindow(tk.Tk):
         self._schedule_periodic_refresh()
 
     def _build_layout(self) -> None:
-        # Main Horizontal Container: Left Sidebar + Right Content
         main_container = tk.Frame(self, bg=BG_WINDOW)
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        # 1. Left Sidebar Navigation
         self.sidebar = SidebarNav(
             main_container,
             on_view_selected=self._handle_view_change,
@@ -76,14 +73,11 @@ class MainWindow(tk.Tk):
         )
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
 
-        # 2. Right Content Wrapper
         self.right_wrapper = tk.Frame(main_container, bg=BG_WINDOW)
         self.right_wrapper.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Top Header Bar
         self._build_header(self.right_wrapper)
 
-        # Dynamic Content View Container
         self.content_area = tk.Frame(self.right_wrapper, bg=BG_WINDOW)
         self.content_area.pack(fill=tk.BOTH, expand=True)
 
@@ -93,7 +87,6 @@ class MainWindow(tk.Tk):
         header = tk.Frame(parent, bg=BG_HEADER, padx=20, pady=14, highlightbackground=COLOR_BORDER, highlightthickness=1)
         header.pack(fill=tk.X)
 
-        # Breadcrumb / View title
         self.header_title_lbl = tk.Label(
             header,
             text="Todos los Proyectos",
@@ -103,7 +96,6 @@ class MainWindow(tk.Tk):
         )
         self.header_title_lbl.pack(side=tk.LEFT)
 
-        # Right Action Buttons: GitHub Status + Add Project
         right_actions = tk.Frame(header, bg=BG_HEADER)
         right_actions.pack(side=tk.RIGHT)
 
@@ -152,7 +144,6 @@ class MainWindow(tk.Tk):
         self._render_current_view()
 
     def _render_current_view(self) -> None:
-        # Clear content area
         for widget in self.content_area.winfo_children():
             widget.destroy()
 
@@ -166,14 +157,12 @@ class MainWindow(tk.Tk):
     def _render_projects_view(self) -> None:
         system_status: SystemStatus = self.engine.get_system_status()
 
-        # Update sidebar counts
         self.sidebar.update_counts(
             total=system_status.total_projects,
             active=system_status.active_projects,
             paused=system_status.paused_projects,
         )
 
-        # Update GitHub pill
         gh_status = self.engine.get_github_status()
         if gh_status.connected and gh_status.username:
             self.gh_header_btn.configure(
@@ -186,7 +175,6 @@ class MainWindow(tk.Tk):
                 fg=FG_SECONDARY,
             )
 
-        # Filter projects according to current view
         all_projects = system_status.projects
         if self.current_view_key == "active":
             displayed = [p for p in all_projects if p.enabled and p.mode != ProjectMode.PAUSED]
@@ -195,7 +183,6 @@ class MainWindow(tk.Tk):
         else:
             displayed = all_projects
 
-        # Scrollable container for cards
         canvas = tk.Canvas(self.content_area, bg=BG_WINDOW, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.content_area, orient="vertical", command=canvas.yview)
         scroll_frame = tk.Frame(canvas, bg=BG_WINDOW)

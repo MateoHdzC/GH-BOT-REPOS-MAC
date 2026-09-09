@@ -32,7 +32,6 @@ class TestBotEnginePhase2(unittest.TestCase):
             engine = BotEngine(config_path=config_file)
             engine.start()
 
-            # Add project in COMMIT_ONLY mode
             success, _, proj = engine.add_project(
                 name="CommitOnlyProj",
                 path=repo_path,
@@ -41,10 +40,8 @@ class TestBotEnginePhase2(unittest.TestCase):
             )
             self.assertTrue(success)
 
-            # Make a file change
             (repo_path / "new_feature.py").write_text("print('hello')", encoding="utf-8")
 
-            # Execute sync
             sync_ok, _ = engine.sync_project("CommitOnlyProj")
             self.assertTrue(sync_ok)
 
@@ -52,7 +49,6 @@ class TestBotEnginePhase2(unittest.TestCase):
             self.assertIsNotNone(state)
             self.assertEqual(state.last_sync_status, SyncStatus.SUCCESS)
             self.assertEqual(state.last_commit_message, "feat: commit only test")
-            # In COMMIT_ONLY mode, last_push_at remains None
             self.assertIsNone(state.last_push_at)
 
             engine.stop()
@@ -68,17 +64,14 @@ class TestBotEnginePhase2(unittest.TestCase):
             engine = BotEngine(config_path=config_file)
             engine.start()
 
-            # Add project in PAUSED mode
             engine.add_project(
                 name="PausedProj",
                 path=repo_path,
                 mode=ProjectMode.PAUSED,
             )
 
-            # Modify file
             (repo_path / "unwanted_change.txt").write_text("do not commit", encoding="utf-8")
 
-            # Trigger automated process sync (manual=False)
             proj = engine.project_manager.get_project("PausedProj")
             self.assertIsNotNone(proj)
             res = engine.process_project_sync(proj, manual=False)
@@ -87,7 +80,6 @@ class TestBotEnginePhase2(unittest.TestCase):
             state = engine.get_project_state("PausedProj")
             self.assertEqual(state.last_sync_status, SyncStatus.SKIPPED_PAUSED)
 
-            # Verify no commit was created in git
             log_res = subprocess.run(
                 ["git", "log", "-1", "--pretty=%B"],
                 cwd=str(repo_path),
@@ -123,7 +115,6 @@ class TestBotEnginePhase2(unittest.TestCase):
             engine.add_project("ProjectB", repo_b, mode=ProjectMode.COMMIT_ONLY, commit_message="feat: b")
             engine.add_project("ProjectC", repo_c, mode=ProjectMode.PAUSED, commit_message="feat: c")
 
-            # Modify all 3
             (repo_a / "a.txt").write_text("change A", encoding="utf-8")
             (repo_b / "b.txt").write_text("change B", encoding="utf-8")
             (repo_c / "c.txt").write_text("change C", encoding="utf-8")
@@ -136,19 +127,15 @@ class TestBotEnginePhase2(unittest.TestCase):
             engine.process_project_sync(proj_b, manual=False)
             engine.process_project_sync(proj_c, manual=False)
 
-            # Verify Project A committed
             log_a = subprocess.run(["git", "log", "-1", "--pretty=%B"], cwd=str(repo_a), capture_output=True, text=True, check=True)
             self.assertEqual(log_a.stdout.strip(), "feat: a")
 
-            # Verify Project B committed
             log_b = subprocess.run(["git", "log", "-1", "--pretty=%B"], cwd=str(repo_b), capture_output=True, text=True, check=True)
             self.assertEqual(log_b.stdout.strip(), "feat: b")
 
-            # Verify Project C did NOT commit
             log_c = subprocess.run(["git", "log", "-1", "--pretty=%B"], cwd=str(repo_c), capture_output=True, text=True, check=True)
             self.assertEqual(log_c.stdout.strip(), "initial commit")
 
-            # Check system status aggregation
             status = engine.get_system_status()
             self.assertEqual(status.total_projects, 3)
             self.assertEqual(status.active_projects, 2)

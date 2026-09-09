@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Build script generating a native macOS application bundle: GH-BOT-REPOS-MAC.app."""
 
 import os
@@ -18,7 +17,6 @@ def build_app() -> bool:
     """Constructs the macOS .app directory structure and executable launcher."""
     print(f"==> Building {APP_BUNDLE_NAME} in {DIST_DIR}...")
 
-    # Clean existing dist/
     if APP_DIR.exists():
         shutil.rmtree(APP_DIR)
 
@@ -29,7 +27,6 @@ def build_app() -> bool:
     macos_dir.mkdir(parents=True, exist_ok=True)
     resources_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Write Info.plist
     info_plist_data = {
         "CFBundleName": "GH-BOT-REPOS-MAC",
         "CFBundleDisplayName": "GH-BOT-REPOS-MAC",
@@ -41,23 +38,19 @@ def build_app() -> bool:
         "CFBundleExecutable": "GH-BOT-REPOS-MAC",
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
-        "LSUIElement": False,  # Shows in dock when window is open
+        "LSUIElement": False,
     }
 
     with open(contents_dir / "Info.plist", "wb") as f:
         plistlib.dump(info_plist_data, f)
 
-    # 2. Write PkgInfo
     with open(contents_dir / "PkgInfo", "w", encoding="utf-8") as f:
         f.write("APPL????")
 
-    # 3. Create macOS Executable launcher script
     launcher_path = macos_dir / "GH-BOT-REPOS-MAC"
     python_binary = sys.executable
 
     launcher_content = f"""#!/bin/bash
-# Native launcher for GH-BOT-REPOS-MAC
-
 APP_ROOT="{WORKSPACE_ROOT}"
 PYTHON_BIN="{python_binary}"
 
@@ -69,7 +62,6 @@ exec "$PYTHON_BIN" -m src.ui.app "$@"
 
     launcher_path.write_text(launcher_content, encoding="utf-8")
 
-    # Make executable (chmod +x)
     current_stat = os.stat(launcher_path)
     os.chmod(launcher_path, current_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 

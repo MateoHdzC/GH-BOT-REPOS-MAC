@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-DEFAULT_DEBOUNCE_SECONDS: int = 300  # 5 minutes
+DEFAULT_DEBOUNCE_SECONDS: int = 300
 DEFAULT_COMMIT_MESSAGE: str = "auto: update project"
 DEFAULT_REMOTE: str = "origin"
 DEFAULT_CONFIG_PATH: Path = Path("config/projects.json")

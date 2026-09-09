@@ -71,7 +71,6 @@ class ProjectCard(tk.Frame):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        # Header Row: Indicator + Name + Branch + Mode Badge
         header = tk.Frame(self, bg=BG_CARD)
         header.pack(fill=tk.X)
 
@@ -97,7 +96,6 @@ class ProjectCard(tk.Frame):
             )
             branch_lbl.pack(side=tk.LEFT, padx=(10, 0))
 
-        # Mode Badge
         badge_bg = (
             BG_BADGE_AUTO
             if self.state.mode == ProjectMode.AUTO
@@ -119,7 +117,6 @@ class ProjectCard(tk.Frame):
         )
         badge.pack(side=tk.RIGHT)
 
-        # Path Row
         path_str = self._format_path(self.state.path)
         path_lbl = tk.Label(
             self,
@@ -131,7 +128,6 @@ class ProjectCard(tk.Frame):
         )
         path_lbl.pack(fill=tk.X, pady=(6, 4))
 
-        # Live Metadata & Status Row
         status_text, status_color = self._get_status_info()
         meta_lbl = tk.Label(
             self,
@@ -143,11 +139,9 @@ class ProjectCard(tk.Frame):
         )
         meta_lbl.pack(fill=tk.X, pady=(0, 10))
 
-        # Action Buttons Row
         actions = tk.Frame(self, bg=BG_CARD)
         actions.pack(fill=tk.X)
 
-        # Mode Selector
         mode_var = tk.StringVar(value=self.state.mode.value)
         mode_cb = ttk.Combobox(
             actions,
@@ -164,7 +158,6 @@ class ProjectCard(tk.Frame):
             ),
         )
 
-        # Subir Ahora Button
         sync_btn = tk.Button(
             actions,
             text="⚡ Subir ahora",
@@ -181,7 +174,6 @@ class ProjectCard(tk.Frame):
         )
         sync_btn.pack(side=tk.LEFT)
 
-        # Delete Button
         del_btn = tk.Button(
             actions,
             text="Eliminar",
@@ -255,7 +247,6 @@ class LogsView(tk.Frame):
         self.refresh_logs()
 
     def _build_ui(self) -> None:
-        # Header toolbar
         top = tk.Frame(self, bg=BG_WINDOW)
         top.pack(fill=tk.X, pady=(0, 14))
 
@@ -282,7 +273,6 @@ class LogsView(tk.Frame):
         )
         refresh_btn.pack(side=tk.RIGHT)
 
-        # Log container
         log_frame = tk.Frame(self, bg=BG_CARD, highlightbackground=COLOR_BORDER, highlightthickness=1)
         log_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -310,7 +300,7 @@ class LogsView(tk.Frame):
         if DEFAULT_LOG_PATH.exists():
             try:
                 lines = DEFAULT_LOG_PATH.read_text(encoding="utf-8").splitlines()
-                recent = lines[-150:]  # Last 150 entries
+                recent = lines[-150:]
                 self.text.insert(tk.END, "\n".join(recent))
                 self.text.see(tk.END)
             except Exception as err:
@@ -346,7 +336,6 @@ class SettingsView(tk.Frame):
         )
         title.pack(anchor="w", pady=(0, 20))
 
-        # Section 1: Inicio Automático macOS
         card1 = tk.Frame(self, bg=BG_CARD, highlightbackground=COLOR_BORDER, highlightthickness=1, padx=16, pady=16)
         card1.pack(fill=tk.X, pady=(0, 14))
 
@@ -381,7 +370,6 @@ class SettingsView(tk.Frame):
         )
         autostart_cb.pack(anchor="w")
 
-        # Section 2: GitHub Account
         card2 = tk.Frame(self, bg=BG_CARD, highlightbackground=COLOR_BORDER, highlightthickness=1, padx=16, pady=16)
         card2.pack(fill=tk.X, pady=(0, 14))
 
@@ -424,7 +412,6 @@ class SettingsView(tk.Frame):
         )
         self.gh_btn.pack(anchor="w")
 
-        # Section 3: Environment Info
         card3 = tk.Frame(self, bg=BG_CARD, highlightbackground=COLOR_BORDER, highlightthickness=1, padx=16, pady=16)
         card3.pack(fill=tk.X)
 
@@ -620,7 +607,6 @@ class AddProjectDialog(tk.Toplevel):
         pad = tk.Frame(self, bg=BG_CARD, padx=24, pady=20)
         pad.pack(fill=tk.BOTH, expand=True)
 
-        # Header
         tk.Label(
             pad,
             text="Añadir Proyecto",
@@ -637,7 +623,6 @@ class AddProjectDialog(tk.Toplevel):
             bg=BG_CARD,
         ).pack(anchor="w", pady=(2, 14))
 
-        # Field 1: Carpeta local
         tk.Label(
             pad,
             text="Carpeta local del proyecto:",
@@ -678,7 +663,6 @@ class AddProjectDialog(tk.Toplevel):
         )
         browse_btn.pack(side=tk.RIGHT)
 
-        # Field 2: Nombre del proyecto
         tk.Label(
             pad,
             text="Nombre del proyecto:",
@@ -702,7 +686,6 @@ class AddProjectDialog(tk.Toplevel):
         )
         self.name_entry.pack(fill=tk.X, pady=(2, 10))
 
-        # Field 3: Link de GitHub (URL Remota)
         tk.Label(
             pad,
             text="Link del repositorio de GitHub (URL donde se subirá):",
@@ -734,7 +717,6 @@ class AddProjectDialog(tk.Toplevel):
             bg=BG_CARD,
         ).pack(anchor="w", pady=(0, 10))
 
-        # Field 4: Modo de sincronización
         tk.Label(
             pad,
             text="Modo de sincronización:",
@@ -752,7 +734,6 @@ class AddProjectDialog(tk.Toplevel):
         )
         mode_cb.pack(fill=tk.X, pady=(2, 18))
 
-        # Submit & Cancel Buttons
         btns = tk.Frame(pad, bg=BG_CARD)
         btns.pack(fill=tk.X)
 
@@ -794,7 +775,6 @@ class AddProjectDialog(tk.Toplevel):
             if not self.name_var.get().strip():
                 self.name_var.set(dir_path.name)
 
-            # If it's already a Git repo, check for remote origin URL
             if self.engine.git_manager.is_git_repo(dir_path):
                 rem_url = self.engine.git_manager.get_remote_url(dir_path)
                 if rem_url and not self.remote_url_var.get().strip():
@@ -819,7 +799,6 @@ class AddProjectDialog(tk.Toplevel):
         remote_url = self.remote_url_var.get().strip() or None
         mode = ProjectMode.from_string(self.mode_var.get())
 
-        # Check if Git is initialized; if not, ask to init
         if not self.engine.git_manager.is_git_repo(dir_path):
             confirm = messagebox.askyesno(
                 "Inicializar Repositorio Git",
@@ -834,7 +813,6 @@ class AddProjectDialog(tk.Toplevel):
                 messagebox.showerror("Error al inicializar Git", init_msg, parent=self)
                 return
 
-        # Add project with remote_url
         success, msg, created = self.engine.add_project(
             name=name,
             path=dir_path,

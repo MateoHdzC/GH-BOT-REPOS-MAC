@@ -1,4 +1,3 @@
-# Operating System Files
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -7,7 +6,6 @@ Icon
 .Spotlight-V100
 .Trashes
 
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -31,7 +29,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
 .env
 .venv
 env/
@@ -40,7 +37,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# Environment Variables & Secrets
 *.env
 *.env.*
 !.env.example
@@ -55,21 +51,18 @@ config/projects.json
 *.cert
 *.crt
 
-# Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 .nox/
 
-# IDEs & Editors
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# Logs
 logs/*
 !logs/.gitkeep
 *.log

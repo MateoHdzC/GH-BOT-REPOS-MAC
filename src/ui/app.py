@@ -47,7 +47,6 @@ def run_app(background: bool = False, config_path: Optional[Path] = None, debug:
 
     logger.info("[SYSTEM] Starting GH-BOT-REPOS-MAC Application...")
 
-    # Initialize Engine
     engine = BotEngine(config_path=config_path)
     engine.start()
 
@@ -63,11 +62,9 @@ def run_app(background: bool = False, config_path: Optional[Path] = None, debug:
         engine.stop()
         sys.exit(0)
 
-    # Signal handlers for clean command-line termination
     signal.signal(signal.SIGINT, lambda s, f: quit_application())
     signal.signal(signal.SIGTERM, lambda s, f: quit_application())
 
-    # Build and launch GUI
     try:
         window = MainWindow(engine=engine, on_quit_app=quit_application)
 
@@ -77,7 +74,6 @@ def run_app(background: bool = False, config_path: Optional[Path] = None, debug:
         else:
             window.show_window()
 
-        # Enter Tkinter main event loop
         window.mainloop()
     except Exception as err:
         logger.error(f"[SYSTEM] [ERROR] GUI encountered an error: {err}", exc_info=True)
