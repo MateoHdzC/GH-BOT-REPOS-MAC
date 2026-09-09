@@ -17,6 +17,7 @@ class SyncStatus(str, Enum):
     STAGING_FAILED = "STAGING_FAILED"
     COMMIT_FAILED = "COMMIT_FAILED"
     PUSH_FAILED = "PUSH_FAILED"
+    OFFLINE_QUEUED = "OFFLINE_QUEUED"
     SKIPPED_PAUSED = "SKIPPED_PAUSED"
     ERROR = "ERROR"
 
@@ -31,6 +32,7 @@ class ProjectRuntimeState:
     enabled: bool = True
     is_watching: bool = False
     is_timer_running: bool = False
+    is_offline_queued: bool = False
     current_branch: Optional[str] = None
     last_change_detected_at: Optional[str] = None
     last_commit_at: Optional[str] = None
@@ -51,6 +53,7 @@ class ProjectRuntimeState:
             "debounce_seconds": self.debounce_seconds,
             "is_watching": self.is_watching,
             "is_timer_running": self.is_timer_running,
+            "is_offline_queued": self.is_offline_queued,
             "current_branch": self.current_branch,
             "last_change_detected_at": self.last_change_detected_at,
             "last_commit_at": self.last_commit_at,
@@ -71,6 +74,7 @@ class SystemStatus:
     active_projects: int = 0
     paused_projects: int = 0
     disabled_projects: int = 0
+    is_online: bool = True
     github_connected: bool = False
     github_username: Optional[str] = None
     uptime_seconds: float = 0.0
@@ -83,6 +87,7 @@ class SystemStatus:
             "active_projects": self.active_projects,
             "paused_projects": self.paused_projects,
             "disabled_projects": self.disabled_projects,
+            "is_online": self.is_online,
             "github_connected": self.github_connected,
             "github_username": self.github_username,
             "uptime_seconds": round(self.uptime_seconds, 2),

@@ -13,6 +13,7 @@ from src.core.project_manager import ProjectManager
 from src.core.state import ProjectRuntimeState, SyncStatus, SystemStatus
 from src.git.git_manager import GitManager
 from src.utils.logger import get_logger
+from src.utils.network import NetworkMonitor
 from src.watcher.repo_watcher import WatcherManager
 
 logger = get_logger("engine")
@@ -26,11 +27,17 @@ class BotEngine:
         config_path: Optional[Path] = None,
         git_manager: Optional[GitManager] = None,
         config_manager: Optional[ConfigManager] = None,
+        network_monitor: Optional[NetworkMonitor] = None,
     ) -> None:
         self.config_manager = config_manager or ConfigManager(config_path)
         self.git_manager = git_manager or GitManager()
         self.watcher_manager = WatcherManager(on_sync_triggered=self.process_project_sync)
         self.github_service = GitHubAuthService()
+        self.network_monitor = network_monitor or NetworkMonitor(
+            on_online=self._on_network_reconnected
+        )
+        self._offline_pending_projects: set[str] = set()
+        self._offline_lock = threading.Lock()
 
         self._states: dict[str, ProjectRuntimeState] = {}
         self._states_lock = threading.RLock()
@@ -120,6 +127,7 @@ class BotEngine:
             self.github_service.connect(self.config.github_username, auth_type="keychain")
 
         self.watcher_manager.register_projects(enabled_projects)
+        self.network_monitor.start()
         self._is_running = True
         logger.info(
             f"[SYSTEM] GH-BOT-REPOS-MAC engine running. Watching {self.watcher_manager.get_active_count()} active project(s)."
@@ -213,6 +221,18 @@ class BotEngine:
             should_push = (project.mode == ProjectMode.AUTO) or (manual and project.mode != ProjectMode.COMMIT_ONLY)
 
             if should_push:
+                if not self.network_monitor.is_online:
+                    logger.info(
+                        f"[NETWORK] [{project.name}] Network is offline. Push queued until connectivity is restored."
+                    )
+                    with self._offline_lock:
+                        self._offline_pending_projects.add(project.name)
+                    state.is_offline_queued = True
+                    state.last_sync_status = SyncStatus.OFFLINE_QUEUED
+                    state.last_error = "Sin conexión a Internet. Sincronización encolada para cuando vuelva la red."
+                    state.last_error_type = "OFFLINE"
+                    return True
+
                 remotes = self.git_manager.get_remotes(resolved_path)
                 if not remotes:
                     err_msg = f"El repositorio no tiene remoto '{project.remote}' configurado. Agrega la URL de GitHub en el proyecto."
@@ -248,6 +268,9 @@ class BotEngine:
                     )
                     return not manual
 
+                with self._offline_lock:
+                    self._offline_pending_projects.discard(project.name)
+                state.is_offline_queued = False
                 state.last_push_at = datetime.now().isoformat()
                 state.last_sync_status = SyncStatus.SUCCESS
                 state.last_error = None
@@ -391,10 +414,38 @@ class BotEngine:
                 active_projects=active_count,
                 paused_projects=paused_count,
                 disabled_projects=disabled_count,
+                is_online=self.network_monitor.is_online,
                 github_connected=gh_status.connected,
                 github_username=gh_status.username,
                 uptime_seconds=uptime,
                 projects=runtime_states,
+            )
+
+    def _on_network_reconnected(self) -> None:
+        with self._offline_lock:
+            pending_names = list(self._offline_pending_projects)
+        if not pending_names:
+            return
+
+        logger.info(
+            f"[NETWORK] Internet connectivity restored. Flushing offline queue for {len(pending_names)} project(s)..."
+        )
+        flushed_count = 0
+        for name in pending_names:
+            project = self.project_manager.get_project(name)
+            if project and project.enabled and project.mode != ProjectMode.PAUSED:
+                success = self.process_project_sync(project, manual=True)
+                if success:
+                    flushed_count += 1
+                    with self._offline_lock:
+                        self._offline_pending_projects.discard(name)
+
+        if flushed_count > 0:
+            from src.utils.notifications import send_macos_notification
+
+            send_macos_notification(
+                message=f"Conexión restablecida: {flushed_count} repositorio(s) sincronizados.",
+                subtitle="Auto-Sync Completado",
             )
 
     def connect_github(
@@ -424,6 +475,7 @@ class BotEngine:
             return
         logger.info("[SYSTEM] Stopping GH-BOT-REPOS-MAC engine...")
         self.watcher_manager.stop_all()
+        self.network_monitor.stop()
         self._is_running = False
         logger.info("[SYSTEM] GH-BOT-REPOS-MAC engine stopped.")
 

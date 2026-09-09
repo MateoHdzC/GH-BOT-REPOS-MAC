@@ -44,7 +44,7 @@ class ProjectConfig:
 
     def resolved_path(self) -> Path:
         """Returns the absolute resolved path with expanded user home."""
-        return self.path.expanduser().resolve()
+        return Path(self.path).expanduser().resolve()
 
 
 @dataclass

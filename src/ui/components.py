@@ -246,6 +246,10 @@ class ProjectCard(tk.Frame):
         else:
             parts.append("Sin commits recientes")
 
+        if self.state.last_sync_status == SyncStatus.OFFLINE_QUEUED or self.state.is_offline_queued:
+            parts.append("📡 En cola (Sin conexión a Internet)")
+            return "  •  ".join(parts), COLOR_WARNING
+
         if self.state.last_sync_status == SyncStatus.ERROR or self.state.last_error:
             parts.append(f"🔴 {self.state.last_error or 'Error en sync'}")
             return "  •  ".join(parts), COLOR_DANGER
