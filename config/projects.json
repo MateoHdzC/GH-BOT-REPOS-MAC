@@ -1,0 +1,16 @@
+{
+  "default_debounce_seconds": 300,
+  "github_username": "MateoHdzC",
+  "projects": [
+    {
+      "name": "GH-BOT-MAC",
+      "path": "/Users/mateo.hdz/Documents/GH-BOT-MAC",
+      "enabled": true,
+      "mode": "AUTO",
+      "branch": "main",
+      "remote": "origin",
+      "commit_message": "auto: update project",
+      "debounce_seconds": 300
+    }
+  ]
+}
