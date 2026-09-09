@@ -287,7 +287,7 @@ class GitManager:
             return GitErrorType.REMOTE_NOT_FOUND
         if "permission denied" in lower_err or "authentication failed" in lower_err or "invalid username or token" in lower_err or "terminal prompts disabled" in lower_err:
             return GitErrorType.AUTH_FAILED
-        if "could not resolve host" in lower_err or "connection refused" in lower_err or "network is unreachable" in lower_err or "connection timed out" in lower_err:
+        if "rpc failed" in lower_err or "http 400" in lower_err or "could not resolve host" in lower_err or "connection refused" in lower_err or "network is unreachable" in lower_err or "connection timed out" in lower_err or "hung up unexpectedly" in lower_err:
             return GitErrorType.NETWORK_ERROR
         if "[rejected]" in lower_err or "non-fast-forward" in lower_err or "fetch first" in lower_err:
             return GitErrorType.REJECTED_NON_FAST_FORWARD
@@ -335,12 +335,17 @@ class GitManager:
 
         target_branch = branch or self.get_current_branch(resolved) or "main"
         
-        extra_args: list[str] = []
+        extra_args: list[str] = [
+            "-c",
+            "http.postBuffer=524288000",
+            "-c",
+            "http.maxRequestBuffer=524288000",
+        ]
         if token and username:
             import base64
             auth_str = f"{username}:{token}"
             encoded = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
-            extra_args = ["-c", f"http.extraHeader=AUTHORIZATION: basic {encoded}"]
+            extra_args.extend(["-c", f"http.extraHeader=AUTHORIZATION: basic {encoded}"])
 
         cmd = extra_args + ["push", "-u", remote, target_branch]
 
