@@ -191,47 +191,52 @@ class BotEngine:
                 state.last_sync_status = SyncStatus.STAGING_FAILED
                 return False
 
-            # 5. Verify real staged changes
-            if not self.git_manager.has_staged_changes(resolved_path):
-                logger.info(
-                    f"[GIT] [{project.name}] No real staged changes detected after 'git add .'. Skipping commit."
+            # 5. Commit changes if new staged differences exist
+            has_staged = self.git_manager.has_staged_changes(resolved_path)
+            if has_staged:
+                now_str = datetime.now().isoformat()
+                commit_result = self.git_manager.commit(
+                    resolved_path,
+                    message=project.commit_message,
                 )
-                state.last_sync_status = SyncStatus.NO_CHANGES
-                state.last_error = None
-                return True
+                if not commit_result.success:
+                    err_msg = commit_result.error_message or "Commit failed"
+                    logger.error(f"[COMMIT] [ERROR] [{project.name}] {err_msg}")
+                    state.last_error = err_msg
+                    state.last_sync_status = SyncStatus.COMMIT_FAILED
+                    return False
 
-            # 6. Commit changes
-            now_str = datetime.now().isoformat()
-            commit_result = self.git_manager.commit(
-                resolved_path,
-                message=project.commit_message,
-            )
-            if not commit_result.success:
-                err_msg = commit_result.error_message or "Commit failed"
-                logger.error(f"[COMMIT] [ERROR] [{project.name}] {err_msg}")
-                state.last_error = err_msg
-                state.last_sync_status = SyncStatus.COMMIT_FAILED
-                return False
+                commit_info = self.git_manager.get_last_commit_info(resolved_path)
+                state.last_commit_at = now_str
+                if commit_info:
+                    state.last_commit_hash = commit_info.hash
+                    state.last_commit_message = commit_info.message
 
-            # Record commit info
-            commit_info = self.git_manager.get_last_commit_info(resolved_path)
-            state.last_commit_at = now_str
-            if commit_info:
-                state.last_commit_hash = commit_info.hash
-                state.last_commit_message = commit_info.message
+                logger.info(
+                    f"[COMMIT] [{project.name}] Commit created successfully: {commit_result.stdout}"
+                )
+            else:
+                logger.info(f"[GIT] [{project.name}] No new uncommitted changes found in working tree.")
 
-            logger.info(
-                f"[COMMIT] [{project.name}] Commit created successfully: {commit_result.stdout}"
-            )
-
-            # 7. Push handling according to mode
+            # 6. Push handling according to mode
             should_push = (project.mode == ProjectMode.AUTO) or (manual and project.mode != ProjectMode.COMMIT_ONLY)
 
             if should_push:
+                remotes = self.git_manager.get_remotes(resolved_path)
+                if not remotes:
+                    err_msg = f"El repositorio no tiene remoto '{project.remote}' configurado. Agrega la URL de GitHub en el proyecto."
+                    logger.warning(f"[PUSH] [ERROR] [{project.name}] {err_msg}")
+                    state.last_error = err_msg
+                    state.last_error_type = "NO_REMOTE"
+                    state.last_sync_status = SyncStatus.PUSH_FAILED
+                    return not manual
+
                 push_result = self.git_manager.push(
                     resolved_path,
                     remote=project.remote,
                     branch=project.branch,
+                    token=self.github_service.get_token(),
+                    username=self.github_service.get_username(),
                 )
                 if not push_result.success:
                     state.last_error = push_result.error_message
@@ -240,7 +245,7 @@ class BotEngine:
                     )
                     state.last_sync_status = SyncStatus.PUSH_FAILED
                     logger.warning(
-                        f"[PUSH] [ERROR] [{project.name}] Push was not completed: {push_result.error_message}. Working tree remains committed."
+                        f"[PUSH] [ERROR] [{project.name}] Push was not completed: {push_result.error_message}."
                     )
                     from src.utils.notifications import send_macos_notification
 
@@ -250,7 +255,7 @@ class BotEngine:
                         subtitle=f"Estado: {err_label}",
                         sound=True,
                     )
-                    return True
+                    return not manual
 
                 state.last_push_at = datetime.now().isoformat()
                 state.last_sync_status = SyncStatus.SUCCESS
@@ -267,7 +272,7 @@ class BotEngine:
                 logger.info(
                     f"[PUSH] [{project.name}] Push skipped: project is in {project.mode.value} mode."
                 )
-                state.last_sync_status = SyncStatus.SUCCESS
+                state.last_sync_status = SyncStatus.SUCCESS if has_staged else SyncStatus.NO_CHANGES
                 state.last_error = None
                 state.last_error_type = None
 
@@ -292,12 +297,12 @@ class BotEngine:
             return False, f"Project '{project_name}' not found."
 
         success = self.process_project_sync(project, manual=True)
-        msg = (
-            f"Project '{project_name}' synchronized successfully."
-            if success
-            else f"Synchronization failed for '{project_name}'."
-        )
-        return success, msg
+        state = self.get_project_state(project_name)
+        if not success:
+            err_msg = state.last_error if state and state.last_error else "Error desconocido durante la sincronización."
+            return False, f"Fallo al subir '{project_name}': {err_msg}"
+
+        return True, f"Proyecto '{project_name}' sincronizado y subido correctamente a GitHub."
 
     def init_git_repo(self, path: Union[str, Path]) -> tuple[bool, str]:
         """Initializes a new Git repository at the given directory path."""

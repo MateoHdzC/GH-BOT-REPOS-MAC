@@ -307,6 +307,8 @@ class GitManager:
         repo_path: Path,
         remote: str = DEFAULT_REMOTE,
         branch: Optional[str] = None,
+        token: Optional[str] = None,
+        username: Optional[str] = None,
     ) -> GitCommandResult:
         """Pushes committed changes to the upstream remote repository.
 
@@ -336,12 +338,18 @@ class GitManager:
                 error_type=GitErrorType.REMOTE_NOT_FOUND,
             )
 
-        target_branch = branch or self.get_current_branch(resolved)
-        cmd = ["push", remote]
-        if target_branch:
-            cmd.append(target_branch)
+        target_branch = branch or self.get_current_branch(resolved) or "main"
+        
+        extra_args: list[str] = []
+        if token and username:
+            import base64
+            auth_str = f"{username}:{token}"
+            encoded = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
+            extra_args = ["-c", f"http.extraHeader=AUTHORIZATION: basic {encoded}"]
 
-        logger.info(f"[GIT] [PUSH] Pushing changes for {resolved} to {remote} (branch: {target_branch or 'default'})")
+        cmd = extra_args + ["push", "-u", remote, target_branch]
+
+        logger.info(f"[GIT] [PUSH] Pushing changes for {resolved} to {remote} (branch: {target_branch})")
         result = self._run_command(cmd, cwd=resolved)
 
         if result.success:

@@ -79,3 +79,13 @@ class GitHubAuthService:
         self._auth_type = None
         logger.info(f"[SYSTEM] GitHub session disconnected for user '{old_user}'.")
         return True
+
+    def get_username(self) -> Optional[str]:
+        """Returns the active GitHub username if connected."""
+        return self._username
+
+    def get_token(self) -> Optional[str]:
+        """Retrieves the stored token from macOS Keychain for the active GitHub user."""
+        if self._username:
+            return KeychainManager.get_credential(self._username)
+        return None
