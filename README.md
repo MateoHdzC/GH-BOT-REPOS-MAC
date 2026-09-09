@@ -1,91 +1,121 @@
-# GH-BOT-REPOS-MAC 🍏
+# GH-BOT-REPOS-MAC
 
-> **Status**: Versión Final Completa (Fase 1, Fase 2 y Fase 3 Implementadas y Validadas)
+> **macOS Git Automation Daemon & Workspace Management System**
 
-`GH-BOT-REPOS-MAC` es una aplicación de escritorio nativa para macOS que vigila repositorios Git locales y automatiza el flujo de sincronización (`git add`, `git commit`, `git push`) según las políticas y modos establecidos (`AUTO`, `COMMIT_ONLY`, `PAUSED`).
+`GH-BOT-REPOS-MAC` is a native macOS background daemon and desktop application designed to monitor local Git repositories and automate the version control lifecycle (`git add`, `git commit`, `git push`) based on configurable operational policies (`AUTO`, `COMMIT_ONLY`, `PAUSED`).
 
-Diseñada específicamente para el ecosistema de macOS con ejecución en segundo plano, integración segura con macOS Keychain, auto-inicio oficial mediante LaunchAgents, notificaciones de sistema y empaquetado como aplicación `.app`.
-
----
-
-## ✨ Características Principales
-
-1. **Interfaz Gráfica macOS**:
-   - Tarjetas interactivas por proyecto con indicador de estado (🟢 AUTO / 🟡 COMMIT ONLY / ⏸️ PAUSED).
-   - Selector de carpetas nativo para añadir repositorios locales.
-   - Sincronización manual bajo demanda (botón *"Subir ahora"*).
-   - Eliminación segura que desvincula el proyecto sin tocar archivos locales.
-   - Visor integrado de logs de actividad.
-2. **Ejecución en Segundo Plano Continua**:
-   - Al cerrar la ventana principal, el bot continúa vigilando y sincronizando en segundo plano.
-   - Botón explícito para salir limpiamente de la aplicación y detener todos los procesos.
-3. **Inicio Automático con macOS (LaunchAgents)**:
-   - Configuración con un clic (`☑ Iniciar GH-BOT-REPOS-MAC al iniciar sesión`).
-   - Mecanismo oficial de macOS sin necesidad de privilegios `sudo`.
-   - Inicia silenciosamente en segundo plano sin desplegar ventanas molestas.
-4. **Seguridad y macOS Keychain**:
-   - Conexión segura con GitHub sin guardar tokens en texto plano ni en `projects.json`.
-   - Almacenamiento protegido mediante el subsistema de seguridad nativo de macOS (`/usr/bin/security`).
-5. **Notificaciones Nativas Inteligentes**:
-   - Alertas del sistema solo para eventos importantes (push exitoso, errores de push o fallos de autenticación), evitando el spam.
-6. **Clasificación Avanzada de Errores Git**:
-   - Tipificación de fallos (`NO_REMOTE`, `AUTH_FAILED`, `NETWORK_ERROR`, `REJECTED_NON_FAST_FORWARD`, etc.) sin recurrir jamás a comandos destructivos ni forzados (`--force`).
+Engineered specifically for the macOS ecosystem, it integrates directly with macOS LaunchAgents, macOS Keychain, native desktop notifications, and continuous background process management.
 
 ---
 
-## 📁 Arquitectura Completa del Proyecto
+## Key Features
+
+- **Native macOS Interface**: Two-column Dark Mode dashboard for managing multiple repositories with real-time health indicators, branch metadata, and operational controls.
+- **Continuous Background Execution**: Closing the main window keeps the daemon and file watchers actively running in the background. Full termination is controlled explicitly via the application menu.
+- **Intelligent Debounce Engine**: Batches consecutive file modifications within a configurable inactivity window (default: 5 minutes) before triggering staging and commit operations, preventing fragmented commits.
+- **Multi-Tiered Security**: Personal Access Tokens (PAT) and GitHub credentials are stored securely via the macOS Keychain (`/usr/bin/security`) and local restricted secrets (`0600`), isolated completely from version control.
+- **Smart Remote Configuration**: Configure local directory paths and target GitHub remote URLs directly from the UI, with automatic `git init` initialization and upstream tracking (`-u`).
+- **macOS LaunchAgents Autostart**: One-click configuration to launch silently in the background at macOS login without requiring administrator (`sudo`) privileges.
+- **Non-Destructive Operations**: Never executes destructive commands (`--force`, `reset --hard`). Repository deletion from the bot leaves all local files and `.git` trees 100% intact.
+
+---
+
+## System Requirements
+
+- **Operating System**: macOS 12.0 (Monterey), macOS 13 (Ventura), macOS 14 (Sonoma), macOS 15 (Sequoia), or later.
+- **Python**: Python 3.10 or higher with `tkinter` support.
+- **Git**: Apple Git or Homebrew Git (v2.28+ recommended).
+
+---
+
+## Installation & Setup
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/MateoHdzC/GH-BOT-REPOS-MAC.git
+cd GH-BOT-REPOS-MAC
+```
+
+### 2. Install Dependencies
+```bash
+pip3 install -r requirements.txt
+```
+
+### 3. Build Native macOS Application
+To compile the standalone macOS application bundle:
+```bash
+python3 scripts/build_app.py
+```
+This generates `dist/GH-BOT-REPOS-MAC.app`. You can move it to `/Applications` or launch it directly:
+```bash
+open dist/GH-BOT-REPOS-MAC.app
+```
+
+---
+
+## Usage & Operational Guide
+
+### 1. Connecting GitHub
+1. Navigate to **Configuración** in the sidebar or click **Conectar GitHub** in the top navigation bar.
+2. Enter your GitHub **Username** and **Personal Access Token (PAT)**.
+   - *Recommended*: GitHub Token (Classic) with `repo` scope, or Fine-Grained Token with `Contents: Read and write` permission.
+3. Credentials are saved locally into the macOS Keychain and ignored by `.gitignore`.
+
+### 2. Adding a Project
+1. Click **+ Añadir proyecto** in the top bar.
+2. Fill out the project details:
+   - **Carpeta local**: Click *Examinar...* to select any local folder. If the folder is not yet a Git repository, the system offers automatic initialization (`git init`).
+   - **Nombre del proyecto**: Pre-filled with the directory name (customizable).
+   - **Link de GitHub (URL Remota)**: Enter your remote repository URL (e.g. `https://github.com/username/repo.git`).
+   - **Modo de sincronización**: Select `AUTO`, `COMMIT_ONLY`, or `PAUSED`.
+3. Click **Guardar y Empezar a Vigilar**.
+
+### 3. Operational Modes
+Each registered repository operates independently in one of three modes:
+- **`AUTO`**: Watches file system events. When changes occur, waits for the debounce window (5 minutes without edits), stages all modifications (`git add .`), creates an automated commit, and pushes to GitHub (`git push -u origin <branch>`).
+- **`COMMIT_ONLY`**: Automatically creates local commits after changes settle, but never executes `git push`.
+- **`PAUSED`**: Temporarily halts file system observation and timers for the selected repository.
+
+### 4. Immediate Synchronization ("Subir ahora")
+Click **⚡ Subir ahora** on any project card to bypass debounce timers and trigger an immediate staging, commit, and push sequence.
+
+### 5. Background Execution
+- Clicking the **(X)** red close button hides the window to the background while keeping all watchers and background sync pipelines active.
+- To reopen the interface, launch the app from Finder / Dock or run `open dist/GH-BOT-REPOS-MAC.app`.
+- To completely terminate the application, click **Salir de GH-BOT** at the bottom of the sidebar.
+
+### 6. Auto-Start on macOS Login
+Enable the **Iniciar GH-BOT-REPOS-MAC al iniciar sesión en macOS** checkbox in *Configuración*. The daemon creates a user-level LaunchAgent at:
+```text
+~/Library/LaunchAgents/com.mateohdz.ghbotmac.plist
+```
+
+---
+
+## Directory Architecture
 
 ```text
 GH-BOT-REPOS-MAC/
+├── .github/workflows/         # CI/CD test automation workflows
 ├── config/
-│   ├── .gitkeep
-│   └── projects.json          # Configuración persistente de proyectos
+│   ├── .secrets.json          # Private user credentials (git-ignored, 0600)
+│   └── projects.json          # Local project registry (git-ignored)
 ├── dist/
-│   └── GH-BOT-REPOS-MAC.app   # Aplicación nativa empaquetada para macOS
-├── docs/                      # Documentación técnica
+│   └── GH-BOT-REPOS-MAC.app   # Standalone native macOS application bundle
+├── docs/                      # Technical documentation
 ├── logs/
-│   ├── .gitkeep
-│   └── app.log                # Registro estructurado de logs
+│   └── app.log                # Structured operational logs
 ├── scripts/
-│   ├── build_app.py           # Generador de GH-BOT-REPOS-MAC.app
-│   ├── .gitkeep
-│   └── run_tests.py           # Ejecutor de la suite de pruebas
+│   ├── build_app.py           # macOS application bundle builder
+│   └── run_tests.py           # Automated test suite runner
 ├── src/
-│   ├── config/                # Capa de configuración y modelos
-│   │   ├── __init__.py
-│   │   ├── manager.py
-│   │   └── models.py
-│   ├── core/                  # Orquestador central, estados y GitHub service
-│   │   ├── __init__.py
-│   │   ├── engine.py
-│   │   ├── github_service.py
-│   │   ├── main.py
-│   │   ├── project_manager.py
-│   │   └── state.py
-│   ├── git/                   # Abstracción y operaciones Git CLI seguras
-│   │   ├── __init__.py
-│   │   ├── git_manager.py
-│   │   └── models.py
-│   ├── ui/                    # Capa de presentación macOS
-│   │   ├── __init__.py
-│   │   ├── app.py             # Lanzador de la aplicación de escritorio
-│   │   ├── components.py      # Tarjetas de proyectos y diálogos modales
-│   │   ├── main_window.py     # Ventana principal
-│   │   └── styles.py          # Paleta visual HIG macOS
-│   └── utils/                 # Utilidades del sistema operativo
-│       ├── __init__.py
-│       ├── autostart.py       # Gestor LaunchAgents de macOS
-│       ├── constants.py
-│       ├── keychain.py        # Almacenamiento seguro en Keychain
-│       ├── logger.py          # Logging rotativo estructurado
-│       └── notifications.py   # Notificaciones de escritorio AppleScript
-├── tests/                     # Suite completa (29 tests automatizados)
-│   ├── config/
-│   ├── core/
-│   ├── git/
-│   ├── ui/
-│   ├── utils/
-│   └── watcher/
+│   ├── config/                # Configuration management & data models
+│   ├── core/                  # Orchestrator engine & background state
+│   ├── git/                   # Git CLI subprocess manager & auth handlers
+│   ├── ui/                    # Dark Mode graphical interface & modals
+│   ├── utils/                 # macOS Keychain, LaunchAgents & notifications
+│   └── watcher/               # File system observer & debounce timers
+├── tests/                     # Comprehensive test suite (33 tests)
 ├── .gitignore
 ├── LICENSE
 ├── README.md
@@ -94,70 +124,22 @@ GH-BOT-REPOS-MAC/
 
 ---
 
-## 🚀 Guía de Uso y Ejecución
+## Testing & Quality Assurance
 
-### 1. Ejecutar en Desarrollo
-Para abrir la interfaz gráfica de inmediato:
-
-```bash
-# Modo normal
-python3 -m src.ui.app
-
-# Modo con logs detallados
-python3 -m src.ui.app --debug
-
-# Modo segundo plano (como arranca al iniciar sesión)
-python3 -m src.ui.app --background
-```
-
-### 2. Generar y Ejecutar `GH-BOT-REPOS-MAC.app`
-Para compilar la aplicación nativa para macOS:
-
-```bash
-# 1. Compilar el bundle .app
-python3 scripts/build_app.py
-
-# 2. Abrir la aplicación empaquetada
-open dist/GH-BOT-REPOS-MAC.app
-```
-*(También podés arrastrar `dist/GH-BOT-REPOS-MAC.app` a tu carpeta `/Applications` de macOS).*
-
----
-
-## 🛠️ Operación de la Aplicación
-
-### Conectar Cuenta de GitHub
-1. En la ventana principal, hacé clic en **"Conectar GitHub"**.
-2. Ingresá tu nombre de usuario y opcionalmente tu Personal Access Token.
-3. El token se almacenará de forma cifrada en tu **macOS Keychain** personal.
-
-### Añadir un Proyecto
-1. Hacé clic en **"+ Añadir proyecto"**.
-2. Se abrirá el selector de carpetas nativo de macOS. Seleccioná el directorio de tu repositorio Git local.
-3. El bot validará que sea un repositorio Git válido y lo incorporará a la vigilancia activa.
-
-### Cambiar Modos de Sincronización
-En la tarjeta de cada proyecto, seleccioná el modo deseado:
-- **`AUTO`**: Commit automático + Push tras 5 minutos de inactividad.
-- **`COMMIT_ONLY`**: Solo commit automático (sin push).
-- **`PAUSED`**: Pausa el monitoreo de ese repositorio.
-
-### Sincronización Inmediata ("Subir ahora")
-Hacé clic en **"Subir ahora"** en la tarjeta del proyecto para disparar el flujo de staging, commit y push al instante sin esperar el temporizador de inactividad.
-
-### Eliminar Proyecto
-Hacé clic en **"Eliminar"**. Aparecerá una confirmación. Al aceptar, el proyecto se desvincula del bot, pero **todos tus archivos y repositorios locales se mantienen 100% intactos**.
-
-### Activar Inicio Automático
-Marcá la casilla **"Iniciar al iniciar sesión"** en la barra superior. El bot configurará el agente oficial en `~/Library/LaunchAgents/` para arrancar silenciosamente en segundo plano cada vez que inicies sesión en tu Mac.
-
----
-
-## 🧪 Pruebas Automatizadas
-
-Para correr toda la suite de pruebas (29 tests):
+The project includes an automated test suite covering configuration serialization, Git command classification, debounce timers, thread safety, and UI view controllers:
 
 ```bash
 python3 scripts/run_tests.py
 ```
-*(Resultado: `Ran 29 tests - OK`)*
+
+Expected result:
+```text
+Ran 33 tests in ~10s
+OK
+```
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

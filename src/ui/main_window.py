@@ -273,18 +273,27 @@ class MainWindow(tk.Tk):
 
     def _open_github_modal(self) -> None:
         gh_status = self.engine.get_github_status()
+        current_u = gh_status.username or self.engine.config.github_username
         GitHubConnectDialog(
             parent=self,
-            current_user=gh_status.username if gh_status.connected else None,
+            current_user=current_u,
             on_connect=self.engine.connect_github,
             on_disconnect=self.engine.disconnect_github,
         )
         self._render_current_view()
 
     def hide_to_background(self) -> None:
-        """Minimizes/hides the main window while keeping BotEngine running in background."""
+        """Hides the main window while keeping BotEngine and watchers running in background."""
         self.withdraw()
         logger.info("[UI] Window minimized to background. Watchers remain active.")
+        try:
+            from src.utils.notifications import send_macos_notification
+            send_macos_notification(
+                message="GH-BOT-REPOS-MAC continúa activo en segundo plano vigilando tus proyectos.",
+                subtitle="Ejecución en segundo plano",
+            )
+        except Exception:
+            pass
 
     def show_window(self) -> None:
         """Brings the main window to foreground."""

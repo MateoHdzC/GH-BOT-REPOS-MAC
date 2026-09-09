@@ -462,13 +462,14 @@ class SettingsView(tk.Frame):
 
     def _handle_github_click(self) -> None:
         gh_status = self.engine.get_github_status()
+        current_u = gh_status.username or self.engine.config.github_username
         if gh_status.connected:
             self.engine.disconnect_github()
             messagebox.showinfo("Desconectado", "Cuenta de GitHub desconectada.", parent=self)
         else:
             GitHubConnectDialog(
                 parent=self,
-                current_user=None,
+                current_user=current_u,
                 on_connect=self.engine.connect_github,
                 on_disconnect=self.engine.disconnect_github,
             )
@@ -563,6 +564,13 @@ class GitHubConnectDialog(tk.Toplevel):
             highlightbackground=COLOR_BORDER,
         )
         token_entry.pack(fill=tk.X, pady=(2, 16))
+
+        if self.current_user:
+            user_entry.insert(0, self.current_user)
+            from src.utils.keychain import KeychainManager
+            saved_token = KeychainManager.get_credential(self.current_user)
+            if saved_token:
+                token_entry.insert(0, saved_token)
 
         connect_btn = tk.Button(
             pad,
@@ -791,6 +799,10 @@ class AddProjectDialog(tk.Toplevel):
                 rem_url = self.engine.git_manager.get_remote_url(dir_path)
                 if rem_url and not self.remote_url_var.get().strip():
                     self.remote_url_var.set(rem_url)
+            elif not self.remote_url_var.get().strip():
+                gh_user = self.engine.config.github_username
+                if gh_user:
+                    self.remote_url_var.set(f"https://github.com/{gh_user}/{dir_path.name}.git")
 
     def _do_save(self) -> None:
         raw_path = self.path_var.get().strip()
