@@ -7,6 +7,7 @@ DEFAULT_COMMIT_MESSAGE: str = "auto: update project"
 DEFAULT_REMOTE: str = "origin"
 DEFAULT_CONFIG_PATH: Path = Path("config/projects.json")
 DEFAULT_LOG_PATH: Path = Path("logs/app.log")
+DEFAULT_LOCK_PATH: Path = Path.home() / ".gh_bot_mac.lock"
 
 IGNORED_DIR_NAMES: set[str] = {
     ".git",

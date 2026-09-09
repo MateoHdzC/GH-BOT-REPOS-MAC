@@ -10,6 +10,7 @@ from pathlib import Path
 from src.core.engine import BotEngine
 from src.utils.constants import DEFAULT_CONFIG_PATH
 from src.utils.logger import get_logger, setup_logger
+from src.utils.process_lock import SingleInstanceLock
 
 
 def parse_args() -> argparse.Namespace:
@@ -40,6 +41,14 @@ def main() -> int:
     setup_logger(level=log_level)
     logger = get_logger("main")
 
+    lock = SingleInstanceLock()
+    if not lock.acquire():
+        running_pid = lock.get_running_pid()
+        logger.error(
+            f"Another instance of GH-BOT-REPOS-MAC daemon is already running (PID: {running_pid or 'unknown'}). Exiting."
+        )
+        return 1
+
     logger.info("=== GH-BOT-REPOS-MAC Daemon Engine Starting ===")
 
     engine = BotEngine(config_path=args.config)
@@ -48,6 +57,7 @@ def main() -> int:
         signame = signal.Signals(sig).name
         logger.info(f"Received shutdown signal {signame}. Terminating gracefully...")
         engine.stop()
+        lock.release()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, handle_shutdown_signal)
@@ -55,6 +65,7 @@ def main() -> int:
 
     if not engine.start():
         logger.error("Failed to initialize engine. Exiting.")
+        lock.release()
         return 1
 
     try:
@@ -64,6 +75,7 @@ def main() -> int:
         logger.info("Keyboard interrupt received.")
     finally:
         engine.stop()
+        lock.release()
 
     return 0
 

@@ -12,6 +12,7 @@ from src.core.engine import BotEngine
 from src.ui.main_window import MainWindow
 from src.utils.constants import DEFAULT_CONFIG_PATH
 from src.utils.logger import get_logger, setup_logger
+from src.utils.process_lock import SingleInstanceLock
 
 logger = get_logger("app")
 
@@ -45,6 +46,14 @@ def run_app(background: bool = False, config_path: Optional[Path] = None, debug:
     log_level = logging.DEBUG if debug else logging.INFO
     setup_logger(level=log_level)
 
+    lock = SingleInstanceLock()
+    if not lock.acquire():
+        running_pid = lock.get_running_pid()
+        logger.warning(
+            f"[SYSTEM] Another instance of GH-BOT-REPOS-MAC is already running (PID: {running_pid or 'unknown'}). Exiting."
+        )
+        return 1
+
     logger.info("[SYSTEM] Starting GH-BOT-REPOS-MAC Application...")
 
     engine = BotEngine(config_path=config_path)
@@ -60,6 +69,7 @@ def run_app(background: bool = False, config_path: Optional[Path] = None, debug:
             except Exception:
                 pass
         engine.stop()
+        lock.release()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, lambda s, f: quit_application())
@@ -79,6 +89,7 @@ def run_app(background: bool = False, config_path: Optional[Path] = None, debug:
         logger.error(f"[SYSTEM] [ERROR] GUI encountered an error: {err}", exc_info=True)
     finally:
         engine.stop()
+        lock.release()
 
     return 0
 

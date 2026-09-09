@@ -91,12 +91,13 @@ GH-BOT-REPOS-MAC/
 │   │   ├── keychain.py           # macOS Keychain (/usr/bin/security) & 0600 fallback
 │   │   ├── logger.py             # Rotating file and console structured logging
 │   │   ├── notifications.py      # Native macOS Notification Center integration
+│   │   ├── process_lock.py       # Single-instance process lock using Unix fcntl.flock
 │   │   └── time_utils.py         # Human-readable debounce duration parser & formatter
 │   └── watcher/
 │       ├── debounce_timer.py     # Thread-safe resettable countdown timer
 │       ├── file_filter.py        # VCS, lockfile, cache, and system file ignore rules
 │       └── repo_watcher.py       # Watchdog / Polling file system directory observer
-├── tests/                        # 43 automated unit & integration tests
+├── tests/                        # 49 automated unit & integration tests (100% passing)
 │   ├── config/
 │   ├── core/
 │   ├── git/
