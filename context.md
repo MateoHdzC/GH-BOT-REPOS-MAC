@@ -78,7 +78,8 @@ GH-BOT-REPOS-MAC/
 │   │   └── state.py              # ProjectRuntimeState, SystemStatus, SyncStatus enums
 │   ├── git/
 │   │   ├── git_manager.py        # Subprocess manager for status, stage, commit, and push
-│   │   └── models.py             # GitCommandResult, CommitInfo, GitErrorType enums
+│   │   ├── models.py             # GitCommandResult, CommitInfo, GitErrorType enums
+│   │   └── secret_scanner.py     # Pre-commit pattern scanner for credentials & private keys
 │   ├── ui/
 │   │   ├── app.py                # Main desktop application bootstrap and signal handlers
 │   │   ├── components.py         # ProjectCard, LogsView, SettingsView, Modals
@@ -98,7 +99,7 @@ GH-BOT-REPOS-MAC/
 │       ├── debounce_timer.py     # Thread-safe resettable countdown timer
 │       ├── file_filter.py        # VCS, lockfile, cache, and system file ignore rules
 │       └── repo_watcher.py       # Watchdog / Polling file system directory observer
-├── tests/                        # 53 automated unit & integration tests (100% passing)
+├── tests/                        # 59 automated unit & integration tests (100% passing)
 │   ├── config/
 │   ├── core/
 │   ├── git/

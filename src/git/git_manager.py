@@ -259,6 +259,18 @@ class GitManager:
         result = self._run_command(["diff", "--cached", "--quiet"], cwd=resolved)
         return result.returncode == 1
 
+    def get_staged_diff(self, repo_path: Path) -> str:
+        """Retrieves the unified diff of all staged changes."""
+        resolved = repo_path.expanduser().resolve()
+        result = self._run_command(["diff", "--cached"], cwd=resolved)
+        return result.stdout if result.success else ""
+
+    def unstage_all(self, repo_path: Path) -> GitCommandResult:
+        """Unstages all files currently in the index (git reset HEAD)."""
+        resolved = repo_path.expanduser().resolve()
+        logger.debug(f"[GIT] Unstaging all changes in {resolved}")
+        return self._run_command(["reset", "HEAD"], cwd=resolved)
+
     def commit(
         self,
         repo_path: Path,

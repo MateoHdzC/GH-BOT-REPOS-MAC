@@ -12,6 +12,7 @@ from src.core.github_service import GitHubAuthService, GitHubAuthStatus
 from src.core.project_manager import ProjectManager
 from src.core.state import ProjectRuntimeState, SyncStatus, SystemStatus
 from src.git.git_manager import GitManager
+from src.git.secret_scanner import SecretScanner
 from src.utils.logger import get_logger
 from src.utils.network import NetworkMonitor
 from src.watcher.repo_watcher import WatcherManager
@@ -28,11 +29,13 @@ class BotEngine:
         git_manager: Optional[GitManager] = None,
         config_manager: Optional[ConfigManager] = None,
         network_monitor: Optional[NetworkMonitor] = None,
+        secret_scanner: Optional[SecretScanner] = None,
     ) -> None:
         self.config_manager = config_manager or ConfigManager(config_path)
         self.git_manager = git_manager or GitManager()
         self.watcher_manager = WatcherManager(on_sync_triggered=self.process_project_sync)
         self.github_service = GitHubAuthService()
+        self.secret_scanner = secret_scanner or SecretScanner()
         self.network_monitor = network_monitor or NetworkMonitor(
             on_online=self._on_network_reconnected
         )
@@ -194,6 +197,25 @@ class BotEngine:
 
             has_staged = self.git_manager.has_staged_changes(resolved_path)
             if has_staged:
+                staged_diff = self.git_manager.get_staged_diff(resolved_path)
+                secrets_found = self.secret_scanner.scan_diff(staged_diff)
+                if secrets_found:
+                    rule_names = ", ".join(sorted({s.rule_name for s in secrets_found}))
+                    err_msg = f"Se detectaron credenciales ({rule_names}). Commit cancelado automáticamente por seguridad."
+                    logger.critical(f"[SECURITY] [{project.name}] {err_msg}")
+                    self.git_manager.unstage_all(resolved_path)
+                    state.last_error = err_msg
+                    state.last_error_type = "SECRET_DETECTED"
+                    state.last_sync_status = SyncStatus.COMMIT_FAILED
+                    from src.utils.notifications import send_macos_notification
+
+                    send_macos_notification(
+                        message=f"Bloqueado por seguridad en {project.name}: {rule_names}",
+                        subtitle="Alerta de Credenciales",
+                        sound=True,
+                    )
+                    return False
+
                 now_str = datetime.now().isoformat()
                 commit_result = self.git_manager.commit(
                     resolved_path,
